@@ -22,6 +22,8 @@ issue system.
 
 Description
 ---------------
+miComplete is a compact software aimed at the rapid determining of the quality of assembled genomes, often metagenome assembled. miComplete also aims at providing a more reliable completeness and redundance 
+metric via a system of weighting the impact of different marker genes presence or absence differently.
 
 Completeness
 ^^^^^^^^^^^^^^^
@@ -48,7 +50,7 @@ Python (>=2.7 / >=3.4)
 
 External software
 ^^^^^^^^^^^^^^^^^^^
-Executables should be available in the user's ``PATH``.
+Executables should be available in the user's ``$PATH``.
 
 HMMER3
 """""""""""""""""
@@ -90,7 +92,8 @@ Git
 2. Clone the latest version of the repository::
    
    $ git clone http://bitbucket.org/evolegiolab/micomplete.git
-   $ ls phyloskeleton
+   $ cd micomplete
+   $ ls micomplete
    
 3. Optionally, add the folder ``micomplete`` in your ``PATH``. The scripts should be kept at their original location.
 
@@ -145,7 +148,7 @@ This example merely produces basic information about the given sequences::
    escherichia_coli	4641652	50.79	4641652	1	4641652	1
    salmonella_enterica	5133713	51.87	4809037	1	4809037	1
    
-miComplete prints result to stdout in tabular format, this can favourably be redirected towards a file and examined with spreadsheet reader. ::
+miComplete prints result to stdout in tabular format, this can favourably be redirected towards a file with a pipe and examined with spreadsheet reader. ::
 
    $ miComplete.py test_set.tab > results.tab
 
