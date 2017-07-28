@@ -27,7 +27,6 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 from operator import itemgetter
 from itertools import chain
-from statistics import median
 import argparse
 import logging
 import sys
@@ -41,6 +40,10 @@ import multiprocessing as mp
 import numpy as np
 import matplotlib.pyplot as plt
 try:
+    from statistics import median
+except ImportError:
+    from numpy import median
+try:
     import queue
 except ImportError:
     import Queue as queue
@@ -48,7 +51,7 @@ try:
     from micomplete import parseSeqStats
     from micomplete import linkageAnalysis
     from micomplete import calcCompleteness
-except (ModuleNotFoundError, ImportError):
+except ImportError:
     from parseseqs import parseSeqStats
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
@@ -85,34 +88,34 @@ def workerMain(seqObject, seqType, argv, q=None):
 
 def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
     """Acquires and outputs length and GC-content for whole fasta"""
+    output = []
     # unpack tuple
     fastats, seqLength, allLengths, GC = seqstats
+    output.extend((seqObject, seqLength, GC))
     # only calculate assembly stats if filetype is fna
+    if argv.completeness:
+        comp = calcCompleteness(proteome, baseName, argv)
+        numHmms, redunHmms, totalHmms = comp.hmm_search()
+        markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))
+        output.append(markerComp)
+        try:
+            redundance = '%0.3f' % (round((redunHmms + numHmms) / numHmms, 3))
+        except ZeroDivisionError:
+            redundance = 0
+        output.append(redundance)
+        if argv.weights:
+            weightedComp, weightedRedun = comp.attribute_weights(numHmms)
+            output.append('%0.3f' % weightedComp)
+            output.append('%0.3f' % weightedRedun)
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
         N50, L50, N90, L90 = fastats.get_stats(seqLength, allLengths)
     else:
         N50, L50, N90, L90 = '-', '-', '-', '-'
-    if argv.completeness:
-        comp = calcCompleteness(proteome, baseName, argv)
-        numHmms, redunHmms, totalHmms = comp.hmm_search()
-        markerComp = round(numHmms / totalHmms, 3)
-        try:
-            redundance = round((redunHmms + numHmms) / numHmms, 3)
-        except ZeroDivisionError:
-            redundance = 0
-        if argv.weights:
-            weightedComp, weightedRedun = comp.attribute_weights(numHmms)
-            print("{0}\t{1}\t{2:.2f}\t{3}\t{4:.3f}\t{5:.3f}\t{6:.3f}"
-            "\t{7:.3f}\t{8}\t{9}\t{10}\t{11}".format(baseName,
-                seqLength, GC, numHmms, markerComp, redundance,
-                weightedComp, weightedRedun, N50, L50, N90, L90))
-        else:
-            print("{0}\t{1}\t{2:.2f}\t{3}\t{4:.3f}\t{5:.3f}\t{6}\t{7}\t{8}\t"
-                "{9}".format(baseName, seqLength, GC, numHmms,
-                    markerComp, redundance, N50, L50, N90, L90))
+    output.extend((N50, L50, N90, L90))
+    if sys.version_info > (3, 0):
+        print(*output, sep='\t')
     else:
-        print("{0}\t{1}\t{2:.2f}\t{3}\t{4}\t{5}\t{6}".format(baseName,
-            seqLength, GC, N50, L50, N90, L90))
+        print('\t'.join(map(str, output)))
 
 def listener(q):
     """Function responsible for writing any calculated weights of each organism
@@ -137,7 +140,7 @@ def listener(q):
     weights_tmp.close()
     return weights_file
 
-def linkage_boxplot(weights_file):
+def weights_output(weights_file):
     """Creates boxplot all linkage values for each marker present in
     micomplete_weights.temp file"""
     # also output weights
@@ -345,7 +348,8 @@ def main():
     weights_file = writer.get()
     pool.close()
     pool.join()
-    linkage_boxplot(weights_file)
+    if args.linkage:
+        weights_output(weights_file)
     logger.info("miComplete has finished")    
 
 if __name__=="__main__":
