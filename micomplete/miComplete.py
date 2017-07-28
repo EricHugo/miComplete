@@ -27,6 +27,7 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 from operator import itemgetter
 from itertools import chain
+from statistics import median
 import argparse
 import logging
 import sys
@@ -82,6 +83,7 @@ def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
     """Acquires and outputs length and GC-content for whole fasta"""
     # unpack tuple
     fastats, seqLength, allLengths, GC = seqstats
+    # only calculate assembly stats if filetype is fna
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
         N50, L50, N90, L90 = fastats.get_stats(seqLength, allLengths)
     else:
@@ -108,7 +110,7 @@ def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
         print("{0}\t{1}\t{2:.2f}\t{3}\t{4}\t{5}\t{6}".format(baseName,
             seqLength, GC, N50, L50, N90, L90))
 
-def listener(q, boxplot=False):
+def listener(q):
     """Function responsible for writing any calculated weights of each organism
     to central temp file"""
     weights_file = "micomplete_weights.temp"
@@ -129,35 +131,44 @@ def listener(q, boxplot=False):
         weights_tmp.flush()
         boxplot = True
     weights_tmp.close()
-    if boxplot and os.stat("micomplete_weights.temp").st_size > 0:
-        linkage_boxplot(weights_file)
-    return
+    return weights_file
 
-def linkage_boxplot(weights_tmp):
+def linkage_boxplot(weights_file):
     """Creates boxplot all linkage values for each marker present in
     micomplete_weights.temp file"""
-    with open(weights_tmp, mode='r') as weights:
+    # also output weights
+    # weight = median / sum(medians)
+    with open(weights_file, mode='r') as weights:
         hmm_weights = defaultdict(list)
         for weight in weights:
             if weight.strip() == '-':
                 continue
             weight = weight.split()
             hmm_weights[weight[0]].append(float(weight[1]))
-        data = []
-        labels = []
-        for hmm, weight in hmm_weights.items():
-            data.append(weight)
-            labels.append(hmm)
-        fig = plt.figure(1, figsize=(9, 6))
-        ax = fig.add_subplot(111)
-        plt.boxplot(data, vert=False, sym='+')
-        ax.set_yticklabels(labels, fontsize=8)
-        ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey',
-                alpha=0.5)
-        ax.set_xlabel('Relative linkage distance')
-        ax.set_ylabel('Markers')
-        plt.show()
-            
+    data = []
+    labels = []
+    median_weights = {}
+    # establish medians, also append axis data
+    for hmm, weight in hmm_weights.items():
+        median_weights[hmm] = median(weight)
+        data.append(weight)
+        labels.append(hmm)
+    # calculate normalized median weights
+    weights_sum = sum(median_weights.values())
+    for hmm, median_weight in median_weights.items():
+        norm_weight = median_weight / weights_sum
+        print(hmm + "\t" + str(norm_weight))
+    # create boxplot
+    fig = plt.figure(1, figsize=(9, 6))
+    ax = fig.add_subplot(111)
+    plt.boxplot(data, vert=False, sym='+')
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey',
+            alpha=0.5)
+    ax.set_xlabel('Relative linkage distance')
+    ax.set_ylabel('Markers')
+    plt.show()
+
 def create_proteome(fasta, baseName=None):
     """Create proteome from given .fna file, returns proteome filename"""
     try:
@@ -327,9 +338,10 @@ def main():
     for job in jobs:
         job.get()
     q.put("done")
-    writer.get()
+    weights_file = writer.get()
     pool.close()
     pool.join()
+    linkage_boxplot(weights_file)
     logger.info("miComplete has finished")    
 
 if __name__=="__main__":
