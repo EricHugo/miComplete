@@ -69,6 +69,10 @@ def workerMain(seqObject, seqType, argv, q=None):
     seqLength, allLengths, GCcontent = fastats.get_length()
     seqstats = (fastats, seqLength, allLengths, GCcontent)
     if argv.linkage:
+        try:
+            assert argv.hmms
+        except (AssertionError, NameError):
+            raise NameError("A set of HMMs must be provided to calculate linkage")
         comp = calcCompleteness(proteome, baseName, argv, True)
         hmmMatches = comp.hmm_search()
         linkage = linkageAnalysis(seqObject, baseName, seqType, 
