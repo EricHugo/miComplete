@@ -79,9 +79,13 @@ Installation
 Python package
 ^^^^^^^^^^^^^^^^^^^
 
-Currently unavailable ::
+miComplete can easily be installed along with all python dependencies::
 
    $ pip install micomplete
+
+Assuming that the python bin is in your ``$PATH``, can then be run as::
+
+   $ miComplete
 
 Git
 ^^^^^^^^^^^^^^^^^^^
@@ -92,8 +96,12 @@ Git
 2. Clone the latest version of the repository::
    
    $ git clone http://bitbucket.org/evolegiolab/micomplete.git
+
+3. Create symlink to some directory in your ``$PATH`` (in this example ``$HOME/bin``)::
+
    $ cd micomplete
    $ ls micomplete
+   $ ln -s $(realpath micomplete/micomplete.py $HOME/bin/miComplete)
    
 3. Optionally, add the folder ``micomplete`` in your ``PATH``. The scripts should be kept at their original location.
 
@@ -141,7 +149,7 @@ Example 1 - Basic stats
 
 This example merely produces basic information about the given sequences::
 
-   $ miComplete.py test_set.tab
+   $ miComplete test_set.tab
    Name	Length	GC-content	N50	L50	N90	L90
    klebsiella_pneumoniae	5682322	57.12	5333942	1	5333942	1
    pseudonomonas_aeruginosa	6264404	66.56	6264404	1	6264404	1
@@ -150,14 +158,14 @@ This example merely produces basic information about the given sequences::
    
 miComplete prints result to stdout in tabular format, this can favourably be redirected towards a file with a pipe and examined with spreadsheet reader. ::
 
-   $ miComplete.py test_set.tab > results.tab
+   $ miComplete test_set.tab > results.tab
 
 Example 2 - Completeness
 """"""""""""""""""""""""
 
 This example will produce the same basic statistics, but also completeness and redundance::
 
-   $ miComplete.py test_set.tab -c --hmms Bact139.hmm
+   $ miComplete test_set.tab -c --hmms share/Bact139.hmm
    Name	Length	GC-content	Present Markers	Completeness	Redundance	N50	L50	N90	L90
    escherichia_coli	4641652	50.79	139	1.000	1.000	4641652	1	4641652	1
    salmonella_enterica	5133713	51.87	138	0.993	1.000	4809037	1	4809037	1
@@ -167,14 +175,14 @@ This example will produce the same basic statistics, but also completeness and r
 That is great, but the run time is starting to increase significantly since we have to translate four genomes to proteomes. 
 We can speed up the process by running all four parallel with ``--threads``::
 
-   $ miComplete.py test_set.tab -c --hmms Bact139.hmm --threads 4 > results.tab
+   $ miComplete test_set.tab -c --hmms share/Bact139.hmm --threads 4 > results.tab
    
 Example 3 - Weighted completeness
 """"""""""""""""""""""""""""""""""
 
 This example will also produce the weighted completeness::
 
-   $ miComplete.py test_set.tab -c --hmms Bact139.hmm --weights Bact139.weights --threads 4
+   $ miComplete test_set.tab -c --hmms share/Bact139.hmm --weights share/Bact139.weights --threads 4
    Name	Length	GC-content	Present Markers	Completeness	Redundance	CompletenessW	RedundanceW	N50	L50	N90	L90
    escherichia_coli	4641652	50.79	139	1.000	1.000	1.000	1.000	4641652	1	4641652	1
    salmonella_enterica	5133713	51.87	138	0.993	1.000	0.991	1.000	4809037	1	4809037	1
@@ -186,7 +194,7 @@ Example 4 - Creating weights
 
 Finally we will create our own set of weights given a set of marker genes for which we do not already have weights::
 
-   $ miComplete.py test_set.tab -c --hmms Bact109.hmm --linkage --threads 4 > Bact109.weights
+   $ miComplete test_set.tab -c --hmms share/Bact109.hmm --linkage --threads 4 > Bact109.weights
 
 Also produces a box plot of the distribution of weights for each marker gene.
 
