@@ -5,7 +5,7 @@ with open('README.rst', mode='r') as f:
 
 setup(name='micomplete',
         version='0.1',
-        description='Quality control for metagenome assembled genomes',
+        description='Quality control of assembled genomes',
         long_description=l_description,
         url='https://bitbucket.org/evolegiolab/micomplete',
         author='Eric Hugoson',
@@ -35,7 +35,7 @@ setup(name='micomplete',
         include_package_data=True,
         entry_points={
             'console_scripts': [
-                'miComplete = micomplete.miComplete:main',
+                'miComplete = micomplete.micomplete:main',
                 ]
             },
         )
