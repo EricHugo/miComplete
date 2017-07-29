@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open('README.md', mode='r') as f:
+with open('README.rst', mode='r') as f:
     l_description = f.read()
 
 setup(name='micomplete',
@@ -31,11 +31,11 @@ setup(name='micomplete',
             'numpy',
             'matplotlib',
             ],
-        packages=['micomplete'],
+        packages=find_packages(),
         include_package_data=True,
         entry_points={
             'console_scripts': [
-                'micomplete = micomplete.miComplete:main',
+                'miComplete = micomplete.miComplete:main',
                 ]
             },
         )
