@@ -2,13 +2,13 @@
 **miComplete**
 ==============
 
-- Eric Hugoson (eric@hugoson.org / eric.hugoson@imbim.uu.se / @EricHugo)
+- Eric Hugoson (eric@hugoson.org / hugoson@evolbio.mpg.de / @EricHugo)
 - Lionel Guy (guy.lionel@gmail.com / lionel.guy@imbim.uu.se / @LionelGuy)
  
 
 Introduction
 ----------------
-With the increasing rate of the production of genomics data, particularly metagenomic data, there is need for more and faster quality control of the resulting genomes. An increasing usage on 
+With the increasing rate of the production of genomics data, particularly metagenomic data, there is need for more and faster quality control of resulting assembled genomes. An increasing usage of 
 metagenome assembled genomes (MAGs) means often working with incomplete genomes, which can be acceptable providing the researcher is cognizant of this. Therefore there is a clear use for software 
 able to rapidly provide the stats that describe the quality and completeness of the genomes or genomic bins of interest.
 
@@ -17,8 +17,8 @@ in HMM format can be provided to also retrieve completeness and redundance of th
 weighted versions of completeness and redundance which can inform the user a bit more of the actual state completeness (see description). Alternatively, the user can calculate new weights for any given set
 of marker genes provided.
 
-miComplete is still in a relatively early state of development, there are a few missing features and bugs are very much expected. Feedback, bug reports, and feature requests are welcome through the 
-issue system.
+miComplete is still in a relatively early state of development, there are a few missing features and bugs are very much expected. Feedback, bug reports, and feature requests are welcome through Bitbucket's 
+`issue system <https://bitbucket.org/evolegiolab/micomplete/issues>`_).
 
 Description
 ---------------
@@ -34,7 +34,7 @@ hit is at least equal to or less than the square root of the the best hit (thoug
 Weights
 ^^^^^^^^^^^
 Not all marker genes are equal in determining the completeness of a genome. Some genes associate closely together within a genome (not in the least genes in operons), and thus viewing two genes that typically 
-associate together within an operon as providing the same completeness information as two unrelated genes would be misleading. miComplete is able to provide a weighted version of completeness and redundance 
+associate together within an operon as providing the same completeness information as two unrelated genes would be misleading. miComplete is able to calculate a weighted version of completeness and redundance 
 that attempts to factor in how closely the provided marker genes typically associate with other provided marker genes.
 
 Linkage
