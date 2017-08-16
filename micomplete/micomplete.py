@@ -27,6 +27,7 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 from operator import itemgetter
 from itertools import chain
+import Bio
 import argparse
 import logging
 import sys
@@ -213,12 +214,32 @@ def extract_gbk_trans(gbkfile, outfile=None):
     for record in SeqIO.parse(input_handle, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
-                # some CDS do not have translations, skip these using assert
+                try:
+                    output_handle.write(">" + feature.qualifiers['locus_tag'][0])
+                except KeyError:
+                    continue
+                # some CDS do not have translations, retrieve nucleotide sequence and
+                # translate
                 try:
                     assert feature.qualifiers['translation'][0]
                 except (AssertionError, KeyError):
+                    start = str(feature.location.nofuzzy_start)
+                    end = str(feature.location.nofuzzy_end)
+                    if feature.strand > 0:
+                        strand = '+'
+                    else:
+                        strand = '-'
+                    output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
+                            strand + ' # ')
+                    ttable = int(''.join(feature.qualifiers['transl_table']))
+                    # check if the locus represents valid CDS else skip
+                    try:
+                        output_handle.write('\n' + str(feature.extract(record.seq).translate(
+                            table=ttable, cds=True, to_stop=True)) + '\n')
+                    except Bio.Data.CodonTable.TranslationError:
+                        output_handle.write('\n')
+                        continue
                     continue
-                output_handle.write(">" + feature.qualifiers['locus_tag'][0])
                 # very occasionally translated seqs have two or more locations
                 # regex search to handle such cases
                 locs = loc_search.search(str(feature.location))
