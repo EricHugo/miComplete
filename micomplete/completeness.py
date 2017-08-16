@@ -47,8 +47,8 @@ class calcCompleteness():
             errcode = subprocess.call(hmmsearch, stdout=open(os.devnull, 'wb'),
                     stderr=subprocess.STDOUT)
         if errcode > 0:
-            cprint("Warning:", 'red', end=' ')
-            print("Error thrown by HMMER, is %s empty?" % self.fasta)
+            cprint("Warning:", 'red', end=' ', file=sys.stderr)
+            print("Error thrown by HMMER, is %s empty?" % self.fasta, file=sys.stderr)
             return 0, 0, 0
         if self.linkage:
             self.get_completeness()
