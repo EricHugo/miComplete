@@ -79,11 +79,17 @@ def workerMain(seqObject, seqType, argv, q=None):
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
         comp = calcCompleteness(proteome, baseName, argv, True)
-        hmmMatches = comp.hmm_search()
-        if hmmMatches[0] == 0:
+        hmmMatches, dupHmms, totalHmms = comp.hmm_search()
+        try:
+            fracHmm = len(hmmMatches) / totalHmms
+            print(fracHmm)
+        except TypeError:
+            fracHmm = 0
+        if fracHmm < 0.8:
+            percHmm = fracHmm * 100
             cprint("Warning:", "red", end=' ', file=sys.stderr)
-            print("no markers were found in %s, cannot be used to calculate linkage" 
-                    % baseName, file=sys.stderr)
+            print("%i%% markers were found in %s, cannot be used to calculate linkage" 
+                    % (percHmm, baseName), file=sys.stderr)
             return
         linkage = linkageAnalysis(seqObject, baseName, seqType, 
                 proteome, seqstats, hmmMatches, argv, q)
@@ -102,7 +108,11 @@ def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
     # only calculate assembly stats if filetype is fna
     if argv.completeness:
         comp = calcCompleteness(proteome, baseName, argv)
-        numHmms, redunHmms, totalHmms = comp.hmm_search()
+        filledHmms, redunHmms, totalHmms = comp.hmm_search()
+        try:
+            numHmms = len(filledHmms)
+        except TypeError:
+            numHmms = 0
         output.append(numHmms)
         try:
             markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))

@@ -50,11 +50,8 @@ class calcCompleteness():
             cprint("Warning:", 'red', end=' ', file=sys.stderr)
             print("Error thrown by HMMER, is %s empty?" % self.fasta, file=sys.stderr)
             return 0, 0, 0
-        if self.linkage:
-            self.get_completeness()
-            return self.filledHmms
         self.get_completeness()
-        return self.numHmms, self.numDupHmms, len(self.hmmNames)
+        return self.filledHmms, self.numDupHmms, len(self.hmmNames)
 
     def get_completeness(self):
         """Reads the out table of hmmer to find which hmms are present, and
