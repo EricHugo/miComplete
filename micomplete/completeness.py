@@ -4,6 +4,7 @@
 from __future__ import print_function, division
 from distutils import spawn
 from collections import defaultdict
+from termcolor import cprint
 import sys
 import math
 import subprocess
@@ -40,10 +41,15 @@ class calcCompleteness():
         if self.argv.debug:
             print(hmmsearch)
         if sys.version_info > (3, 4):
-            subprocess.run(hmmsearch, stdout=subprocess.DEVNULL)
+            compProc = subprocess.run(hmmsearch, stdout=subprocess.DEVNULL)
+            errcode = compProc.returncode
         else:
-            subprocess.call(hmmsearch, stdout=open(os.devnull, 'wb'),
+            errcode = subprocess.call(hmmsearch, stdout=open(os.devnull, 'wb'),
                     stderr=subprocess.STDOUT)
+        if errcode > 0:
+            cprint("Warning:", 'red', end=' ')
+            print("Error thrown by HMMER, is %s empty?" % self.fasta)
+            return 0, 0, 0
         if self.linkage:
             self.get_completeness()
             return self.filledHmms

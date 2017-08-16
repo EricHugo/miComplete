@@ -27,6 +27,7 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 from operator import itemgetter
 from itertools import chain
+from termcolor import cprint
 import Bio
 import argparse
 import logging
@@ -97,7 +98,10 @@ def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
     if argv.completeness:
         comp = calcCompleteness(proteome, baseName, argv)
         numHmms, redunHmms, totalHmms = comp.hmm_search()
-        markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))
+        try:
+            markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))
+        except ZeroDivisionError:
+            markerComp = 0
         output.append(markerComp)
         try:
             redundance = '%0.3f' % (round((redunHmms + numHmms) / numHmms, 3))
@@ -105,7 +109,10 @@ def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
             redundance = 0
         output.append(redundance)
         if argv.weights:
-            weightedComp, weightedRedun = comp.attribute_weights(numHmms)
+            if numHmms > 0:
+                weightedComp, weightedRedun = comp.attribute_weights(numHmms)
+            else:
+                weightedComp, weightedRedun = 0, 0
             output.append('%0.3f' % weightedComp)
             output.append('%0.3f' % weightedRedun)
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
