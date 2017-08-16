@@ -97,14 +97,14 @@ def workerMain(seqObject, seqType, argv, q=None):
         q.put(linkageVals)
         return linkageVals
     else:
-        results_output(seqObject, seqType, baseName, argv, proteome, seqstats)
+        results_output(seqType, baseName, argv, proteome, seqstats)
 
-def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
+def results_output(seqType, baseName, argv, proteome, seqstats):
     """Acquires and outputs length and GC-content for whole fasta"""
     output = []
     # unpack tuple
     fastats, seqLength, allLengths, GC = seqstats
-    output.extend((seqObject, seqLength, GC))
+    output.extend((baseName, seqLength, GC))
     # only calculate assembly stats if filetype is fna
     if argv.completeness:
         comp = calcCompleteness(proteome, baseName, argv)
