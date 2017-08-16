@@ -98,6 +98,7 @@ def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
     if argv.completeness:
         comp = calcCompleteness(proteome, baseName, argv)
         numHmms, redunHmms, totalHmms = comp.hmm_search()
+        output.append(numHmms)
         try:
             markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))
         except ZeroDivisionError:
