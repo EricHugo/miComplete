@@ -80,6 +80,11 @@ def workerMain(seqObject, seqType, argv, q=None):
             raise NameError("A set of HMMs must be provided to calculate linkage")
         comp = calcCompleteness(proteome, baseName, argv, True)
         hmmMatches = comp.hmm_search()
+        if hmmMatches[0] == 0:
+            cprint("Warning:", "red", end=' ', file=sys.stderr)
+            print("no markers were found in %s, cannot be used to calculate linkage" 
+                    % baseName, file=sys.stderr)
+            return
         linkage = linkageAnalysis(seqObject, baseName, seqType, 
                 proteome, seqstats, hmmMatches, argv, q)
         linkageVals = linkage.get_locations()
