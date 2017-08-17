@@ -82,7 +82,6 @@ def workerMain(seqObject, seqType, argv, q=None):
         hmmMatches, dupHmms, totalHmms = comp.hmm_search()
         try:
             fracHmm = len(hmmMatches) / totalHmms
-            print(fracHmm)
         except TypeError:
             fracHmm = 0
         if fracHmm < 0.8:
@@ -97,9 +96,9 @@ def workerMain(seqObject, seqType, argv, q=None):
         q.put(linkageVals)
         return linkageVals
     else:
-        results_output(seqType, baseName, argv, proteome, seqstats)
+        results_output(seqType, baseName, argv, proteome, seqstats, q)
 
-def results_output(seqType, baseName, argv, proteome, seqstats):
+def results_output(seqType, baseName, argv, proteome, seqstats, q):
     """Acquires and outputs length and GC-content for whole fasta"""
     output = []
     # unpack tuple
@@ -136,14 +135,16 @@ def results_output(seqType, baseName, argv, proteome, seqstats):
     else:
         N50, L50, N90, L90 = '-', '-', '-', '-'
     output.extend((N50, L50, N90, L90))
-    if sys.version_info > (3, 0):
-        print(*output, sep='\t')
-    else:
-        print('\t'.join(map(str, output)))
+    q.put(output)
 
 def listener(q):
-    """Function responsible for writing any calculated weights of each organism
-    to central temp file"""
+    """
+    Function responsible for outputting information in a thread safe manner.
+    Recieves write requests from Queue and writes different targets depending
+    on type. Writes results from general operation to stdout, logobjects
+    to logfile and any calculated weights of each organism to unified 
+    tmp file.
+    """
     weights_file = "micomplete_weights.temp"
     weights_tmp = open(weights_file, mode='w+')
     while True:
@@ -153,6 +154,12 @@ def listener(q):
             break
         if type(write_request) is str:
             #logger.handle(write_request)
+            continue
+        if type(write_request) is list:
+            if sys.version_info > (3, 0):
+                print(*write_request, sep='\t')
+            else:
+                print('\t'.join(map(str, write_request)))
             continue
         for hmm, weight in sorted(write_request.items(), 
                 key=lambda e: e[1], reverse=True):
