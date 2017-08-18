@@ -96,10 +96,14 @@ def workerMain(seqObject, seqType, argv, q=None):
         q.put(linkageVals)
         return linkageVals
     else:
-        results_output(seqType, baseName, argv, proteome, seqstats, q)
+        compile_results(seqType, baseName, argv, proteome, seqstats, q)
 
-def results_output(seqType, baseName, argv, proteome, seqstats, q):
-    """Acquires and outputs length and GC-content for whole fasta"""
+def compile_results(seqType, baseName, argv, proteome, seqstats, q=None):
+    """
+    Compile results from sequences passed to requested modules and pass
+    to Queue for thread safe output. If no Queue given print directly to
+    stdout.
+    """
     output = []
     # unpack tuple
     fastats, seqLength, allLengths, GC = seqstats
@@ -135,7 +139,13 @@ def results_output(seqType, baseName, argv, proteome, seqstats, q):
     else:
         N50, L50, N90, L90 = '-', '-', '-', '-'
     output.extend((N50, L50, N90, L90))
-    q.put(output)
+    if q:
+        q.put(output)
+    else:
+        if sys.version_info > (3, 0):
+            print(*write_request, sep='\t')
+        else:
+            print('\t'.join(map(str, write_request)))
 
 def listener(q):
     """
