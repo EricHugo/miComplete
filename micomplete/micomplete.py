@@ -58,19 +58,21 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
-def workerMain(seqObject, seqType, argv, q=None):
+def workerMain(seqObject, seqType, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
     baseName = os.path.basename(seqObject).split('.')[0]
+    if not name:
+        name = baseName
     if argv.linkage or argv.completeness:
         if re.match("(gb.?.?)|genbank", seqType):
             proteome = extract_gbk_trans(seqObject)
         elif seqType == "fna":
-            proteome = create_proteome(seqObject, baseName)
+            proteome = create_proteome(seqObject, name)
         elif seqType == "faa":
             proteome = seqObject
     else:
         proteome = False
-    fastats = parseSeqStats(seqObject, baseName, seqType)
+    fastats = parseSeqStats(seqObject, name, seqType)
     seqLength, allLengths, GCcontent = fastats.get_length()
     seqstats = (fastats, seqLength, allLengths, GCcontent)
     if argv.linkage:
@@ -78,7 +80,7 @@ def workerMain(seqObject, seqType, argv, q=None):
             assert argv.hmms
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
-        comp = calcCompleteness(proteome, baseName, argv, True)
+        comp = calcCompleteness(proteome, name, argv, True)
         hmmMatches, dupHmms, totalHmms = comp.hmm_search()
         try:
             fracHmm = len(hmmMatches) / totalHmms
@@ -88,17 +90,17 @@ def workerMain(seqObject, seqType, argv, q=None):
             percHmm = fracHmm * 100
             cprint("Warning:", "red", end=' ', file=sys.stderr)
             print("%i%% markers were found in %s, cannot be used to calculate linkage" 
-                    % (percHmm, baseName), file=sys.stderr)
+                    % (percHmm, name), file=sys.stderr)
             return
-        linkage = linkageAnalysis(seqObject, baseName, seqType, 
+        linkage = linkageAnalysis(seqObject, name, seqType, 
                 proteome, seqstats, hmmMatches, argv, q)
         linkageVals = linkage.get_locations()
         q.put(linkageVals)
         return linkageVals
     else:
-        compile_results(seqType, baseName, argv, proteome, seqstats, q)
+        compile_results(seqType, name, argv, proteome, seqstats, q)
 
-def compile_results(seqType, baseName, argv, proteome, seqstats, q=None):
+def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     """
     Compile results from sequences passed to requested modules and pass
     to Queue for thread safe output. If no Queue given print directly to
@@ -107,10 +109,10 @@ def compile_results(seqType, baseName, argv, proteome, seqstats, q=None):
     output = []
     # unpack tuple
     fastats, seqLength, allLengths, GC = seqstats
-    output.extend((baseName, seqLength, GC))
+    output.extend((name, seqLength, GC))
     # only calculate assembly stats if filetype is fna
     if argv.completeness:
-        comp = calcCompleteness(proteome, baseName, argv)
+        comp = calcCompleteness(proteome, name, argv)
         filledHmms, redunHmms, totalHmms = comp.hmm_search()
         try:
             numHmms = len(filledHmms)
@@ -399,7 +401,9 @@ def main():
     
     jobs = []
     for i in inputSeqs: 
-        job = pool.apply_async(workerMain, (i[0], i[1], args, q))
+        if len(i) == 2:
+            i.append(None)
+        job = pool.apply_async(workerMain, (i[0], i[1], args, q, i[2]))
         jobs.append(job)
 
     # get() all processes to catch errors
