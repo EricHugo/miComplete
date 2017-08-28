@@ -81,7 +81,7 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
         comp = calcCompleteness(proteome, name, argv, True)
-        hmmMatches, dupHmms, totalHmms = comp.hmm_search()
+        hmmMatches, dupHmms, totalHmms = comp.get_completeness()
         try:
             fracHmm = len(hmmMatches) / totalHmms
         except TypeError:
@@ -113,7 +113,7 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     # only calculate assembly stats if filetype is fna
     if argv.completeness:
         comp = calcCompleteness(proteome, name, argv)
-        filledHmms, redunHmms, totalHmms = comp.hmm_search()
+        filledHmms, redunHmms, totalHmms = comp.get_completeness()
         try:
             numHmms = len(filledHmms)
         except TypeError:

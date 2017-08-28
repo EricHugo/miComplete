@@ -50,12 +50,12 @@ class calcCompleteness():
             cprint("Warning:", 'red', end=' ', file=sys.stderr)
             print("Error thrown by HMMER, is %s empty?" % self.fasta, file=sys.stderr)
             return 0, 0, 0
-        self.get_completeness()
-        return self.filledHmms, self.numDupHmms, len(self.hmmNames)
+        return self.tblout
 
     def get_completeness(self):
         """Reads the out table of hmmer to find which hmms are present, and
         which are duplicated"""
+        self.hmm_search()
         self.hmmMatches = defaultdict(list)
         self.seenHmms = set()
         # gather gene name and evalue in dict by key[hmm]
@@ -86,7 +86,8 @@ class calcCompleteness():
         self.numDupHmms = len(self.dupHmms)
         if self.argv.hlist and not self.linkage:
             self.print_hmm_lists()
-        return
+        return self.filledHmms, self.numDupHmms, len(self.hmmNames)
+
 
     def print_hmm_lists(self):
         """Prints the contents of found, duplicate and and not found markers"""
