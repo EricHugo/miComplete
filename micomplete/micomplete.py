@@ -80,7 +80,8 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
             assert argv.hmms
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
-        comp = calcCompleteness(proteome, name, argv, True)
+        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
+                argv.weights, argv.hlist, argv.linkage, argv.debug)
         hmmMatches, dupHmms, totalHmms = comp.get_completeness()
         try:
             fracHmm = len(hmmMatches) / totalHmms
@@ -93,7 +94,7 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
                     % (percHmm, name), file=sys.stderr)
             return
         linkage = linkageAnalysis(seqObject, name, seqType, 
-                proteome, seqstats, hmmMatches, argv, q)
+                proteome, seqstats, hmmMatches, argv.debug, q)
         linkageVals = linkage.get_locations()
         q.put(linkageVals)
         return linkageVals
@@ -112,7 +113,8 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     output.extend((name, seqLength, GC))
     # only calculate assembly stats if filetype is fna
     if argv.completeness:
-        comp = calcCompleteness(proteome, name, argv)
+        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
+                argv.weights, argv.hlist, argv.linkage, argv.debug)
         filledHmms, redunHmms, totalHmms = comp.get_completeness()
         try:
             numHmms = len(filledHmms)

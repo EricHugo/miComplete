@@ -13,15 +13,18 @@ import os
 
 
 class calcCompleteness():
-    def __init__(self, fasta, baseName, argv, linkage=False):
+    def __init__(self, fasta, baseName, hmms, evalue=1e-10, weights=None, 
+            hlist=False, linkage=False, debug=False):
         """Initializes the basic variables of the completeness search"""
         self.baseName = baseName
-        self.evalue = "-E %s" % (str(argv.evalue))
+        self.evalue = "-E %s" % (str(evalue))
         self.tblout = "%s.tblout" % (self.baseName)
-        self.hmms = argv.hmms
+        self.hmms = hmms
         self.fasta = fasta
         self.linkage = linkage
-        self.argv = argv
+        self.weights = weights
+        self.hlist = hlist
+        self.debug = debug
         print("Starting completeness for " + fasta, file=sys.stderr)
         self.hmmNames = set({})
         with open(self.hmms) as hmmfile:
@@ -29,7 +32,7 @@ class calcCompleteness():
                 if re.search('^NAME', line):
                     name = line.split(' ')
                     self.hmmNames.add(name[2].strip())
-        if self.argv.debug:
+        if self.debug:
             print(self.hmmNames)
 
     def hmm_search(self):
@@ -38,7 +41,7 @@ class calcCompleteness():
         markers, duplicated markers and total number of markers"""
         hmmsearch = ["hmmsearch", self.evalue, "--tblout", self.tblout,
                 self.hmms, self.fasta]
-        if self.argv.debug:
+        if self.debug:
             print(hmmsearch)
         if sys.version_info > (3, 4):
             compProc = subprocess.run(hmmsearch, stdout=subprocess.DEVNULL)
@@ -68,7 +71,7 @@ class calcCompleteness():
                         #slice notation gathers column 0 and 4
                         self.hmmMatches[hmm].append(foundHmm.split()[0:5:4])
                         self.seenHmms.add(hmm)
-        if self.argv.debug:
+        if self.debug:
             print(self.hmmMatches)
             print(len(self.hmmMatches))
         self.filledHmms = defaultdict(list)
@@ -84,7 +87,7 @@ class calcCompleteness():
         self.dupHmms = [hmm for hmm, genes in self.filledHmms.items()
                 if len(genes) > 1]
         self.numDupHmms = len(self.dupHmms)
-        if self.argv.hlist and not self.linkage:
+        if self.hlist and not self.linkage:
             self.print_hmm_lists()
         return self.filledHmms, self.numDupHmms, len(self.hmmNames)
 
@@ -111,12 +114,12 @@ class calcCompleteness():
         weightedComplete = 0
         weightedRedun = 0
         for hmm in self.seenHmms:
-            with open(self.argv.weights, 'r') as weights:
+            with open(self.weights, 'r') as weights:
                 for eachWeight in weights:
                     if re.match(hmm + "\s", eachWeight):
                         weightedComplete += float(eachWeight.split()[1])
         for hmm in self.dupHmms:
-            with open(self.argv.weights, 'r') as weights:
+            with open(self.weights, 'r') as weights:
                 for eachWeights in weights:
                     if re.match(hmm + "\t", eachWeights):
                         weightedRedun += float(eachWeights.split()[1])
