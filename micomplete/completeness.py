@@ -1,6 +1,13 @@
 # Copyright (c) Eric Hugoson.
 # See LICENSE for details.
 
+"""
+Module investigates the completeness of a given genome with respect to a given 
+set of HMM makers, in so far as it runs HMMer and parses the output. 
+
+
+"""
+
 from __future__ import print_function, division
 from distutils import spawn
 from collections import defaultdict
@@ -36,9 +43,11 @@ class calcCompleteness():
             print(self.hmmNames)
 
     def hmm_search(self):
-        """Runs hmmsearch using the supplied .hmm file and produces a table
+        """
+        Runs hmmsearch using the supplied .hmm file and produces a table
         out, also hooks in get_completeness() and ultimately returns found
-        markers, duplicated markers and total number of markers"""
+        markers, duplicated markers and total number of markers
+        """
         hmmsearch = ["hmmsearch", self.evalue, "--tblout", self.tblout,
                 self.hmms, self.fasta]
         if self.debug:
@@ -56,8 +65,10 @@ class calcCompleteness():
         return self.tblout
 
     def get_completeness(self):
-        """Reads the out table of hmmer to find which hmms are present, and
-        which are duplicated"""
+        """
+        Reads the out table of hmmer to find which hmms are present, and
+        which are duplicated. According t
+        """
         self.hmm_search()
         self.hmmMatches = defaultdict(list)
         self.seenHmms = set()
@@ -83,14 +94,28 @@ class calcCompleteness():
                     self.filledHmms[hmm].append(gene)
                 elif float(gene[1]) < pow(float(self.filledHmms[hmm][0][1]), 1/2):
                     self.filledHmms[hmm].append(gene)
-        self.numHmms = len(self.filledHmms)
-        self.dupHmms = [hmm for hmm, genes in self.filledHmms.items()
-                if len(genes) > 1]
-        self.numDupHmms = len(self.dupHmms)
+        self.dupHmms = [ hmm for hmm, genes in self.filledHmms.items()
+                if len(genes) > 1 ]
         if self.hlist and not self.linkage:
             self.print_hmm_lists()
-        return self.filledHmms, self.numDupHmms, len(self.hmmNames)
+        return self.filledHmms, self.dupHmms, self.hmmNames
 
+    def quantify_completeness(self):
+        """
+        Function returns the number of found markers, duplicated markers, and 
+        total number of markers.
+        """
+        self.get_completeness()
+        numHmms = len(self.hmmNames)
+        try:
+            numFoundHmms = len(self.filledHmms)
+        except TypeError:
+            numFoundHmms = 0
+            numTotalHmms = 0
+            return numFoundHmms, numTotalHmms, numHmms
+        allDupHmms = [ len(genes) for hmm, genes in self.filledHmms.items() ]
+        numTotalHmms = sum(allDupHmms)
+        return numFoundHmms, numTotalHmms, numHmms
 
     def print_hmm_lists(self):
         """Prints the contents of found, duplicate and and not found markers"""
@@ -107,6 +132,7 @@ class calcCompleteness():
             for hmm in self.hmmNames:
                 if hmm not in self.seenHmms:
                     missingList.write("%s\n" % hmm)
+        return hlistName
 
     def attribute_weights(self, numHmms):
         """Using the markers found and duplicates from get_completeness(), and

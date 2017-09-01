@@ -84,7 +84,7 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
                 argv.weights, argv.hlist, argv.linkage, argv.debug)
         hmmMatches, dupHmms, totalHmms = comp.get_completeness()
         try:
-            fracHmm = len(hmmMatches) / totalHmms
+            fracHmm = len(hmmMatches) / len(totalHmms)
         except TypeError:
             fracHmm = 0
         if fracHmm < 0.8:
@@ -111,13 +111,12 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     # unpack tuple
     fastats, seqLength, allLengths, GC = seqstats
     output.extend((name, seqLength, GC))
-    # only calculate assembly stats if filetype is fna
     if argv.completeness:
         comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
                 argv.weights, argv.hlist, argv.linkage, argv.debug)
-        filledHmms, redunHmms, totalHmms = comp.get_completeness()
+        filledHmms, redunHmms, totalHmms = comp.quantify_completeness()
         try:
-            numHmms = len(filledHmms)
+            numHmms = filledHmms
         except TypeError:
             numHmms = 0
         output.append(numHmms)
@@ -127,7 +126,7 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
             markerComp = 0
         output.append(markerComp)
         try:
-            redundance = '%0.3f' % (round((redunHmms + numHmms) / numHmms, 3))
+            redundance = '%0.3f' % (round((redunHmms) / numHmms, 3))
         except ZeroDivisionError:
             redundance = 0
         output.append(redundance)
@@ -138,6 +137,7 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
                 weightedComp, weightedRedun = 0, 0
             output.append('%0.3f' % weightedComp)
             output.append('%0.3f' % weightedRedun)
+    # only calculate assembly stats if filetype is fna
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
         N50, L50, N90, L90 = fastats.get_stats(seqLength, allLengths)
     else:
