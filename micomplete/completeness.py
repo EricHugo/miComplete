@@ -22,7 +22,6 @@ import os
 class calcCompleteness():
     def __init__(self, fasta, baseName, hmms, evalue=1e-10, weights=None, 
             hlist=False, linkage=False, debug=False):
-        """Initializes the basic variables of the completeness search"""
         self.baseName = baseName
         self.evalue = "-E %s" % (str(evalue))
         self.tblout = "%s.tblout" % (self.baseName)
@@ -44,9 +43,8 @@ class calcCompleteness():
 
     def hmm_search(self):
         """
-        Runs hmmsearch using the supplied .hmm file and produces a table
-        out, also hooks in get_completeness() and ultimately returns found
-        markers, duplicated markers and total number of markers
+        Runs hmmsearch using the supplied .hmm file, and specified evalue.
+        Produces an output table from hmmsearch, function returns its name.
         """
         hmmsearch = ["hmmsearch", self.evalue, "--tblout", self.tblout,
                 self.hmms, self.fasta]
@@ -67,7 +65,13 @@ class calcCompleteness():
     def get_completeness(self):
         """
         Reads the out table of hmmer to find which hmms are present, and
-        which are duplicated. According t
+        which are duplicated. Duplicates are only considered duplicates if
+        the evalue of the secondary hit is within the squareroot of the best 
+        hit.
+
+        Returns: Dict of all hmms found with evalues for best and possible 
+        deulicates, list of hmms with duplicates, and names of all hmms 
+        which were searched for.
         """
         self.hmm_search()
         self.hmmMatches = defaultdict(list)
