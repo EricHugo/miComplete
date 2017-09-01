@@ -87,7 +87,7 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
             fracHmm = len(hmmMatches) / len(totalHmms)
         except TypeError:
             fracHmm = 0
-        if fracHmm < 0.8:
+        if fracHmm < argv.cutoff:
             percHmm = fracHmm * 100
             cprint("Warning:", "red", end=' ', file=sys.stderr)
             print("%i%% markers were found in %s, cannot be used to calculate linkage" 
@@ -334,9 +334,13 @@ def main():
     parser.add_argument("--linkage", required=False, default=False, 
             action='store_true', help="""Specifies that the provided sequences 
             should be used to calculate the weights of the provided HMMs""")
-    parser.add_argument("--evalue", required=False, default=1e-10,
-            help="""Specify e-value cutoff to be used for completeness check, 
-            default=1e-10""")
+    parser.add_argument("--evalue", required=False, type=float, default=1e-10,
+            help="""Specify e-value cutoff to be used for completeness check. 
+            Default = 1e-10""")
+    parser.add_argument("--cutoff", required=False, type=float, default=0.9,
+            help="""Specify cutoff percentage of markers required to be present 
+            in genome for it be included in linkage calculation. 
+            Default = 0.9""")
     parser.add_argument("--threads", required=False, default=1, type=int,
             help="""Specify number of threads to be used in parallel""")
     parser.add_argument("--log", required=False, default="miComplete.log",
