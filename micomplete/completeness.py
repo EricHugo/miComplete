@@ -59,8 +59,7 @@ class calcCompleteness():
         if errcode > 0:
             cprint("Warning:", 'red', end=' ', file=sys.stderr)
             print("Error thrown by HMMER, is %s empty?" % self.fasta, file=sys.stderr)
-            return 0, 0, 0
-        return self.tblout
+        return self.tblout, errcode
 
     def get_completeness(self):
         """
@@ -73,7 +72,9 @@ class calcCompleteness():
         deulicates, list of hmms with duplicates, and names of all hmms 
         which were searched for.
         """
-        self.hmm_search()
+        tblout, errcode = self.hmm_search()
+        if errcode > 0:
+            return 0, 0, 0
         self.hmmMatches = defaultdict(list)
         self.seenHmms = set()
         # gather gene name and evalue in dict by key[hmm]
@@ -109,13 +110,14 @@ class calcCompleteness():
         Function returns the number of found markers, duplicated markers, and 
         total number of markers.
         """
-        self.get_completeness()
-        numHmms = len(self.hmmNames)
+        filledHmms, dupHmms, hmmNames = self.get_completeness()
         try:
-            numFoundHmms = len(self.filledHmms)
+            numFoundHmms = len(filledHmms)
+            numHmms = len(hmmNames)
         except TypeError:
             numFoundHmms = 0
             numTotalHmms = 0
+            numHmms = 0
             return numFoundHmms, numTotalHmms, numHmms
         allDupHmms = [ len(genes) for hmm, genes in self.filledHmms.items() ]
         numTotalHmms = sum(allDupHmms)
