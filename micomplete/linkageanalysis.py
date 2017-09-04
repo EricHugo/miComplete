@@ -10,7 +10,7 @@ import re
 
 class linkageAnalysis():
     def __init__(self, seqObject, baseName, seqType, proteome, seqstats, 
-            hmmMatches, argv, q):
+            hmmMatches, debug, q):
         self.baseName = baseName
         self.seqObject = seqObject
         self.q = q
@@ -18,7 +18,7 @@ class linkageAnalysis():
         fastats, self.seqLength, allLengths, GC = seqstats
         self.proteome = proteome
         self.hmmMatches = hmmMatches
-        self.argv = argv
+        self.debug = debug
         self.hmmLocations = defaultdict(list)
         if seqType == "faa":
             raise TypeError('Sequences for linkage analysis needs to be fna or gbk')
@@ -55,7 +55,7 @@ class linkageAnalysis():
         are compared to all other locations, lowest value is stored"""
         # for each hmm compare loc(s) to all other locs to find lowest negative
         # value, these are closest neighbours up- and downstream
-        if self.argv.debug:
+        if self.debug:
             #self.hmmLocations["test"].append([110, 120])
             #self.hmmLocations["test2"].append([510, 720])
             pass

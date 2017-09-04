@@ -71,6 +71,7 @@ Required
 - Biopython (>= 1.70) (``$ pip install biopython``)
 - Numpy (>= 1.13.1) (``$ pip install numpy``)
 - Matplotlib (>= 2.0.2) (``$ pip install matplotlib``)
+- Termcolor (>= 1.1.0) (``$ pip install termcolor``)
 
 
 Installation
@@ -129,6 +130,7 @@ Optional arguments
    --weights WEIGHTS   Specify a set of weights for the HMMs specified, (optional)
    --linkage           Specifies that the provided sequences should be used to calculate the weights of the provided HMMs
    --evalue EVALUE     Specify e-value cutoff to be used for completeness check, default=1e-10
+   --cutoff CUTOFF     Specify cutoff percentage of markers required to be present in genome for it be included in linkage calculat. Default = 0.9
    --threads THREADS   Specify number of threads to be used in parallel
    --log LOG           Log name (default=miComplete.log)
    -v, --verbose       Enable verbose logging

@@ -2,3 +2,4 @@ include README.rst
 include test_data/*
 include share/*
 include LICENSE
+include CHANGES.txt

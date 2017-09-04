@@ -27,6 +27,8 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 from operator import itemgetter
 from itertools import chain
+from termcolor import cprint
+import Bio
 import argparse
 import logging
 import sys
@@ -56,19 +58,21 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
-def workerMain(seqObject, seqType, argv, q=None):
+def workerMain(seqObject, seqType, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
     baseName = os.path.basename(seqObject).split('.')[0]
+    if not name:
+        name = baseName
     if argv.linkage or argv.completeness:
         if re.match("(gb.?.?)|genbank", seqType):
             proteome = extract_gbk_trans(seqObject)
         elif seqType == "fna":
-            proteome = create_proteome(seqObject, baseName)
+            proteome = create_proteome(seqObject, name)
         elif seqType == "faa":
             proteome = seqObject
     else:
         proteome = False
-    fastats = parseSeqStats(seqObject, baseName, seqType)
+    fastats = parseSeqStats(seqObject, name, seqType)
     seqLength, allLengths, GCcontent = fastats.get_length()
     seqstats = (fastats, seqLength, allLengths, GCcontent)
     if argv.linkage:
@@ -76,50 +80,88 @@ def workerMain(seqObject, seqType, argv, q=None):
             assert argv.hmms
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
-        comp = calcCompleteness(proteome, baseName, argv, True)
-        hmmMatches = comp.hmm_search()
-        linkage = linkageAnalysis(seqObject, baseName, seqType, 
-                proteome, seqstats, hmmMatches, argv, q)
+        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
+                argv.weights, argv.hlist, argv.linkage, argv.debug)
+        hmmMatches, dupHmms, totalHmms = comp.get_completeness()
+        try:
+            fracHmm = len(hmmMatches) / len(totalHmms)
+        except TypeError:
+            fracHmm = 0
+        if fracHmm < argv.cutoff:
+            percHmm = fracHmm * 100
+            cprint("Warning:", "red", end=' ', file=sys.stderr)
+            print("%i%% markers were found in %s, cannot be used to calculate linkage" 
+                    % (percHmm, name), file=sys.stderr)
+            return
+        linkage = linkageAnalysis(seqObject, name, seqType, 
+                proteome, seqstats, hmmMatches, argv.debug, q)
         linkageVals = linkage.get_locations()
         q.put(linkageVals)
         return linkageVals
     else:
-        results_output(seqObject, seqType, baseName, argv, proteome, seqstats)
+        compile_results(seqType, name, argv, proteome, seqstats, q)
 
-def results_output(seqObject, seqType, baseName, argv, proteome, seqstats):
-    """Acquires and outputs length and GC-content for whole fasta"""
+def compile_results(seqType, name, argv, proteome, seqstats, q=None):
+    """
+    Compile results from sequences passed to requested modules and pass
+    to Queue for thread safe output. If no Queue given print directly to
+    stdout.
+    """
     output = []
     # unpack tuple
-    fastats, seqLength, allLengths, GC = seqstats
-    output.extend((seqObject, seqLength, GC))
-    # only calculate assembly stats if filetype is fna
+    if not seqType == 'faa':
+        fastats, seqLength, allLengths, GC = seqstats
+    else:
+        fastats, seqLength, allLengths, GC = "-", "-", "-", "-"
+    output.extend((name, seqLength, GC))
     if argv.completeness:
-        comp = calcCompleteness(proteome, baseName, argv)
-        numHmms, redunHmms, totalHmms = comp.hmm_search()
-        markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))
+        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
+                argv.weights, argv.hlist, argv.linkage, argv.debug)
+        filledHmms, redunHmms, totalHmms = comp.quantify_completeness()
+        try:
+            numHmms = filledHmms
+        except TypeError:
+            numHmms = 0
+        output.append(numHmms)
+        try:
+            markerComp = '%0.3f' % (round(numHmms / totalHmms, 3))
+        except ZeroDivisionError:
+            markerComp = 0
         output.append(markerComp)
         try:
-            redundance = '%0.3f' % (round((redunHmms + numHmms) / numHmms, 3))
+            redundance = '%0.3f' % (round((redunHmms) / numHmms, 3))
         except ZeroDivisionError:
             redundance = 0
         output.append(redundance)
         if argv.weights:
-            weightedComp, weightedRedun = comp.attribute_weights(numHmms)
+            if numHmms > 0:
+                weightedComp, weightedRedun = comp.attribute_weights(numHmms)
+            else:
+                weightedComp, weightedRedun = 0, 0
             output.append('%0.3f' % weightedComp)
             output.append('%0.3f' % weightedRedun)
+    # only calculate assembly stats if filetype is fna
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
         N50, L50, N90, L90 = fastats.get_stats(seqLength, allLengths)
     else:
         N50, L50, N90, L90 = '-', '-', '-', '-'
     output.extend((N50, L50, N90, L90))
-    if sys.version_info > (3, 0):
-        print(*output, sep='\t')
+    if q:
+        q.put(output)
     else:
-        print('\t'.join(map(str, output)))
+        if sys.version_info > (3, 0):
+            print(*write_request, sep='\t')
+        else:
+            print('\t'.join(map(str, write_request)))
 
 def listener(q):
-    """Function responsible for writing any calculated weights of each organism
-    to central temp file"""
+    """
+    Function responsible for outputting information in a thread safe manner.
+    Recieves write requests from Queue and writes different targets depending
+    on type. Writes results from general operation to stdout, logobjects
+    to logfile and any calculated weights of each organism to unified 
+    tmp file.
+    """
     weights_file = "micomplete_weights.temp"
     weights_tmp = open(weights_file, mode='w+')
     while True:
@@ -129,6 +171,12 @@ def listener(q):
             break
         if type(write_request) is str:
             #logger.handle(write_request)
+            continue
+        if type(write_request) is list:
+            if sys.version_info > (3, 0):
+                print(*write_request, sep='\t')
+            else:
+                print('\t'.join(map(str, write_request)))
             continue
         for hmm, weight in sorted(write_request.items(), 
                 key=lambda e: e[1], reverse=True):
@@ -213,12 +261,32 @@ def extract_gbk_trans(gbkfile, outfile=None):
     for record in SeqIO.parse(input_handle, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
-                # some CDS do not have translations, skip these using assert
+                try:
+                    output_handle.write(">" + feature.qualifiers['locus_tag'][0])
+                except KeyError:
+                    continue
+                # some CDS do not have translations, retrieve nucleotide sequence and
+                # translate
                 try:
                     assert feature.qualifiers['translation'][0]
                 except (AssertionError, KeyError):
+                    start = str(feature.location.nofuzzy_start)
+                    end = str(feature.location.nofuzzy_end)
+                    if feature.strand > 0:
+                        strand = '+'
+                    else:
+                        strand = '-'
+                    output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
+                            strand + ' # ')
+                    ttable = int(''.join(feature.qualifiers['transl_table']))
+                    # check if the locus represents valid CDS else skip
+                    try:
+                        output_handle.write('\n' + str(feature.extract(record.seq).translate(
+                            table=ttable, cds=True, to_stop=True)) + '\n')
+                    except Bio.Data.CodonTable.TranslationError:
+                        output_handle.write('\n')
+                        continue
                     continue
-                output_handle.write(">" + feature.qualifiers['locus_tag'][0])
                 # very occasionally translated seqs have two or more locations
                 # regex search to handle such cases
                 locs = loc_search.search(str(feature.location))
@@ -269,9 +337,13 @@ def main():
     parser.add_argument("--linkage", required=False, default=False, 
             action='store_true', help="""Specifies that the provided sequences 
             should be used to calculate the weights of the provided HMMs""")
-    parser.add_argument("--evalue", required=False, default=1e-10,
-            help="""Specify e-value cutoff to be used for completeness check, 
-            default=1e-10""")
+    parser.add_argument("--evalue", required=False, type=float, default=1e-10,
+            help="""Specify e-value cutoff to be used for completeness check. 
+            Default = 1e-10""")
+    parser.add_argument("--cutoff", required=False, type=float, default=0.9,
+            help="""Specify cutoff percentage of markers required to be present 
+            in genome for it be included in linkage calculation. 
+            Default = 0.9""")
     parser.add_argument("--threads", required=False, default=1, type=int,
             help="""Specify number of threads to be used in parallel""")
     parser.add_argument("--log", required=False, default="miComplete.log",
@@ -338,7 +410,9 @@ def main():
     
     jobs = []
     for i in inputSeqs: 
-        job = pool.apply_async(workerMain, (i[0], i[1], args, q))
+        if len(i) == 2:
+            i.append(None)
+        job = pool.apply_async(workerMain, (i[0], i[1], args, q, i[2]))
         jobs.append(job)
 
     # get() all processes to catch errors
