@@ -109,7 +109,10 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     """
     output = []
     # unpack tuple
-    fastats, seqLength, allLengths, GC = seqstats
+    if not seqType == 'faa':
+        fastats, seqLength, allLengths, GC = seqstats
+    else:
+        fastats, seqLength, allLengths, GC = "-", "-", "-", "-"
     output.extend((name, seqLength, GC))
     if argv.completeness:
         comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
