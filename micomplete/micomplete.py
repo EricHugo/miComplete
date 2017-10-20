@@ -262,7 +262,7 @@ def extract_gbk_trans(gbkfile, outfile=None):
         for feature in record.features:
             if feature.type == "CDS":
                 try:
-                    output_handle.write(">" + feature.qualifiers['locus_tag'][0])
+                    header = ">" + feature.qualifiers['locus_tag'][0]
                 except KeyError:
                     continue
                 # some CDS do not have translations, retrieve nucleotide sequence and
@@ -276,19 +276,21 @@ def extract_gbk_trans(gbkfile, outfile=None):
                         strand = '+'
                     else:
                         strand = '-'
-                    output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
-                            strand + ' # ')
                     ttable = int(''.join(feature.qualifiers['transl_table']))
                     # check if the locus represents valid CDS else skip
                     try:
-                        output_handle.write('\n' + str(feature.extract(record.seq).translate(
+                        fasta_trans = ('\n' + str(feature.extract(record.seq).translate(
                             table=ttable, cds=True, to_stop=True)) + '\n')
                     except Bio.Data.CodonTable.TranslationError:
-                        output_handle.write('\n')
                         continue
                     continue
+                    output_handle.write(header)
+                    output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
+                            strand + ' # ')
+                    output_handle.write(fasta_trans)
                 # very occasionally translated seqs have two or more locations
                 # regex search to handle such cases
+                output_handle.write(header)
                 locs = loc_search.search(str(feature.location))
                 if locs:
                     locs_list = locs.group(1).split(',')
