@@ -95,7 +95,7 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
             return
         linkage = linkageAnalysis(seqObject, name, seqType, 
                 proteome, seqstats, hmmMatches, argv.debug, q)
-        linkageVals = linkage.get_locations()
+        linkageVals = linkage.calculate_linkage_scores()
         q.put(linkageVals)
         return linkageVals
     else:
@@ -294,7 +294,6 @@ def extract_gbk_trans(gbkfile, outfile=None):
                 locs = loc_search.search(str(feature.location))
                 if locs:
                     locs_list = locs.group(1).split(',')
-                    print(locs_list)
                     for loc in locs_list:
                         loc_str = ''.join( l for l in ''.join(loc) 
                                 if l not in "[]")
@@ -321,7 +320,9 @@ def main():
             sets of marker genes, as well as weighted versions of these statstics
             (including defining new weights for any given set).
             """,
-        epilog="""Report issues and bugs to the issue tracker at https://bitbucket.org/evolegiolab/micomplete or directly to eric@hugoson.org""")
+        epilog="""Report issues and bugs to the issue tracker at 
+                https://bitbucket.org/evolegiolab/micomplete or directly to 
+                eric@hugoson.org""")
 
     parser.add_argument("sequence", help="""Sequence(s) along with type (fna, 
             faa, gbk) provided in a tabular format""")
