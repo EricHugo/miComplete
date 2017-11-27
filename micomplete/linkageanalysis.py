@@ -10,7 +10,7 @@ import re
 
 class linkageAnalysis():
     def __init__(self, seqObject, baseName, seqType, proteome, seqstats, 
-            hmmMatches, debug, q):
+            hmmMatches, debug=False, q=None):
         self.baseName = baseName
         self.seqObject = seqObject
         self.q = q
