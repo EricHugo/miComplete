@@ -265,8 +265,8 @@ def extract_gbk_trans(gbkfile, outfile=None):
                     header = ">" + feature.qualifiers['locus_tag'][0]
                 except KeyError:
                     continue
-                # some CDS do not have translations, retrieve nucleotide sequence and
-                # translate
+                # some CDS do not have translations, retrieve nucleotide sequence 
+                # and translate
                 try:
                     assert feature.qualifiers['translation'][0]
                 except (AssertionError, KeyError):
@@ -294,15 +294,18 @@ def extract_gbk_trans(gbkfile, outfile=None):
                 locs = loc_search.search(str(feature.location))
                 if locs:
                     locs_list = locs.group(1).split(',')
+                    print(locs_list)
                     for loc in locs_list:
                         loc_str = ''.join( l for l in ''.join(loc) 
                                 if l not in "[]")
-                        loc_str = re.sub('\(|\)', '#', loc_str)
+                        loc_str = re.sub('\(|\)|:', ' # ', loc_str)
+                        loc_str = re.sub('>|<', '', loc_str)
                         output_handle.write(" # " + loc_str)
                 else:
                     loc_str = ''.join( l for l in ''.join(str(feature.location)) 
                             if l not in "[]")
                     loc_str = re.sub('\(|\)|\:', ' # ', loc_str)
+                    loc_str = re.sub('>|<', '', loc_str)
                     output_handle.write(" # " + loc_str)
                 output_handle.write('\n' + feature.qualifiers['translation'][0]
                         + '\n')
