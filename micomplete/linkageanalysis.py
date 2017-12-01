@@ -1,12 +1,10 @@
 # Copyright (c) Eric Hugoson.
 # See LICENSE for details.
 
-
 from __future__ import print_function, division
 from collections import defaultdict
 from itertools import chain
 import re
-
 
 class linkageAnalysis():
     def __init__(self, seqObject, baseName, seqType, proteome, seqstats, 
@@ -20,7 +18,8 @@ class linkageAnalysis():
         self.hmmMatches = hmmMatches
         self.debug = debug
         if seqType == "faa":
-            raise TypeError('Sequences for linkage analysis needs to be fna or gbk')
+            raise TypeError('Sequences for linkage analysis needs to be fna or \
+                    gbk')
         with open(self.proteome) as protFile:
             self.pHeaders = set(header for header in protFile 
                     if re.search("^>", header))
