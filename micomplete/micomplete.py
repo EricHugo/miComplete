@@ -256,11 +256,16 @@ def extract_gbk_trans(gbkfile, outfile=None):
         baseName = os.path.basename(gbkfile).split('.')[0]
         outfile = baseName + "_translations.faa"
         output_handle = open(outfile, mode='w+')
+    contig_n = 0
+    cds_n = 0
     # compile regex to match multi-loc hits
     loc_search = re.compile('\{(.*?)\}')
     for record in SeqIO.parse(input_handle, "genbank"):
         for feature in record.features:
+            if feature.type == "source":
+                contig_n += 1
             if feature.type == "CDS":
+                cds_n += 1
                 try:
                     header = ">" + feature.qualifiers['locus_tag'][0]
                 except KeyError:
@@ -286,7 +291,8 @@ def extract_gbk_trans(gbkfile, outfile=None):
                     continue
                     output_handle.write(header)
                     output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
-                            strand + ' # ')
+                            strand + ' # ID=' + str(contig_n) + '_' + str(cds_n)
+                            + ';')
                     output_handle.write(fasta_trans)
                 # very occasionally translated seqs have two or more locations
                 # regex search to handle such cases
@@ -306,9 +312,12 @@ def extract_gbk_trans(gbkfile, outfile=None):
                     loc_str = re.sub('\(|\)|\:', ' # ', loc_str)
                     loc_str = re.sub('>|<', '', loc_str)
                     output_handle.write(" # " + loc_str)
+                output_handle.write('ID=' + str(contig_n) + '_' + str(cds_n) 
+                        + ';')
                 output_handle.write('\n' + feature.qualifiers['translation'][0]
                         + '\n')
     input_handle.close()
+    output_handle.flush()
     output_handle.close()
     return outfile
 
