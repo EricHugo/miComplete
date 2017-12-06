@@ -1,16 +1,14 @@
 # Copyright (c) Eric Hugoson.
 # See LICENSE for details.
 
-
 from __future__ import print_function, division
 from collections import defaultdict
 from itertools import chain
 import re
 
-
 class linkageAnalysis():
     def __init__(self, seqObject, baseName, seqType, proteome, seqstats, 
-            hmmMatches, debug, q):
+            hmmMatches, debug=False, q=None):
         self.baseName = baseName
         self.seqObject = seqObject
         self.q = q
@@ -19,9 +17,9 @@ class linkageAnalysis():
         self.proteome = proteome
         self.hmmMatches = hmmMatches
         self.debug = debug
-        self.hmmLocations = defaultdict(list)
         if seqType == "faa":
-            raise TypeError('Sequences for linkage analysis needs to be fna or gbk')
+            raise TypeError('Sequences for linkage analysis needs to be fna or \
+                    gbk')
         with open(self.proteome) as protFile:
             self.pHeaders = set(header for header in protFile 
                     if re.search("^>", header))
@@ -39,6 +37,7 @@ class linkageAnalysis():
         #
         ## for each matching gene get weight from self.pHeaders and put into
         ## new dict in format dict[hmm] = [[START, STOP], [START, STOP], [...]]
+        self.hmmLocations = defaultdict(list)
         for hmm, genes in self.hmmMatches.items():
             for gene in genes:
                 for loc in self.pHeaders:
@@ -47,14 +46,17 @@ class linkageAnalysis():
                         self.hmmLocations[hmm].append(list(map(int,
                             loc.split('#')[1:3])))
             #print(self.hmmLocations[hmm])
-        self.find_neighbour_distance()
-        return self.linkageRelVals
+        return self.hmmLocations 
 
     def find_neighbour_distance(self):
         """For each location of each matched marker the location of start and stop
         are compared to all other locations, lowest value is stored"""
         # for each hmm compare loc(s) to all other locs to find lowest negative
         # value, these are closest neighbours up- and downstream
+        try:
+            self.hmmLocations
+        except AttributeError:
+            self.get_locations()
         if self.debug:
             #self.hmmLocations["test"].append([110, 120])
             #self.hmmLocations["test2"].append([510, 720])
@@ -84,12 +86,15 @@ class linkageAnalysis():
             self.locs[hmm].append(min(minFLoc))
             self.locs[hmm].append(min(minRLoc))
             #print(self.locs[hmm])
-        self.calculate_linkage_scores()
-        return
+        return self.locs
 
     def calculate_linkage_scores(self):
         """From dict of with smallest distance locations up- and downstream
         the average is calculated, totaled and a relative value is calculated"""
+        try:
+            self.locs
+        except AttributeError:
+            self.find_neighbour_distance()
         self.linkageAbsVals = {hmm: (loc[0] + loc[1]) / 2 for (hmm, loc) in
                 self.locs.items()}
         self.totalDistance = sum([ linkVal for hmm, linkVal in
@@ -102,5 +107,5 @@ class linkageAnalysis():
         # Send results to function with lock to write to single file
         # Once all results are there average and make boxplot
         # Write resulting weights to .weights file
-        return
+        return self.linkageRelVals
 

@@ -95,7 +95,7 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
             return
         linkage = linkageAnalysis(seqObject, name, seqType, 
                 proteome, seqstats, hmmMatches, argv.debug, q)
-        linkageVals = linkage.get_locations()
+        linkageVals = linkage.calculate_linkage_scores()
         q.put(linkageVals)
         return linkageVals
     else:
@@ -256,17 +256,22 @@ def extract_gbk_trans(gbkfile, outfile=None):
         baseName = os.path.basename(gbkfile).split('.')[0]
         outfile = baseName + "_translations.faa"
         output_handle = open(outfile, mode='w+')
+    contig_n = 0
+    cds_n = 0
     # compile regex to match multi-loc hits
     loc_search = re.compile('\{(.*?)\}')
     for record in SeqIO.parse(input_handle, "genbank"):
         for feature in record.features:
+            if feature.type == "source":
+                contig_n += 1
             if feature.type == "CDS":
+                cds_n += 1
                 try:
-                    output_handle.write(">" + feature.qualifiers['locus_tag'][0])
+                    header = ">" + feature.qualifiers['locus_tag'][0]
                 except KeyError:
                     continue
-                # some CDS do not have translations, retrieve nucleotide sequence and
-                # translate
+                # some CDS do not have translations, retrieve nucleotide sequence 
+                # and translate
                 try:
                     assert feature.qualifiers['translation'][0]
                 except (AssertionError, KeyError):
@@ -276,35 +281,43 @@ def extract_gbk_trans(gbkfile, outfile=None):
                         strand = '+'
                     else:
                         strand = '-'
-                    output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
-                            strand + ' # ')
                     ttable = int(''.join(feature.qualifiers['transl_table']))
                     # check if the locus represents valid CDS else skip
                     try:
-                        output_handle.write('\n' + str(feature.extract(record.seq).translate(
+                        fasta_trans = ('\n' + str(feature.extract(record.seq).translate(
                             table=ttable, cds=True, to_stop=True)) + '\n')
                     except Bio.Data.CodonTable.TranslationError:
-                        output_handle.write('\n')
                         continue
                     continue
+                    output_handle.write(header)
+                    output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
+                            strand + ' # ID=' + str(contig_n) + '_' + str(cds_n)
+                            + ';')
+                    output_handle.write(fasta_trans)
                 # very occasionally translated seqs have two or more locations
                 # regex search to handle such cases
+                output_handle.write(header)
                 locs = loc_search.search(str(feature.location))
                 if locs:
                     locs_list = locs.group(1).split(',')
                     for loc in locs_list:
                         loc_str = ''.join( l for l in ''.join(loc) 
                                 if l not in "[]")
-                        loc_str = re.sub('\(|\)', '#', loc_str)
+                        loc_str = re.sub('\(|\)|:', ' # ', loc_str)
+                        loc_str = re.sub('>|<', '', loc_str)
                         output_handle.write(" # " + loc_str)
                 else:
                     loc_str = ''.join( l for l in ''.join(str(feature.location)) 
                             if l not in "[]")
                     loc_str = re.sub('\(|\)|\:', ' # ', loc_str)
+                    loc_str = re.sub('>|<', '', loc_str)
                     output_handle.write(" # " + loc_str)
+                output_handle.write('ID=' + str(contig_n) + '_' + str(cds_n) 
+                        + ';')
                 output_handle.write('\n' + feature.qualifiers['translation'][0]
                         + '\n')
     input_handle.close()
+    output_handle.flush()
     output_handle.close()
     return outfile
 
@@ -316,7 +329,9 @@ def main():
             sets of marker genes, as well as weighted versions of these statstics
             (including defining new weights for any given set).
             """,
-        epilog="""Report issues and bugs to the issue tracker at https://bitbucket.org/evolegiolab/micomplete or directly to eric@hugoson.org""")
+        epilog="""Report issues and bugs to the issue tracker at 
+                https://bitbucket.org/evolegiolab/micomplete or directly to 
+                eric@hugoson.org""")
 
     parser.add_argument("sequence", help="""Sequence(s) along with type (fna, 
             faa, gbk) provided in a tabular format""")
