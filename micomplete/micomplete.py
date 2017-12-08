@@ -394,7 +394,8 @@ def main():
                 raise RuntimeError('Unable to find hmmsearch in path')
 
     with open(args.sequence) as seq_file:
-        inputSeqs = [ seq.strip().split('\t') for seq in seq_file ]
+        inputSeqs = [ seq.strip().split('\t') for seq in seq_file 
+                    if not re.match('#|\n', seq) ]
     
     if sys.version_info > (3, 0):
         print(*inputSeqs, sep='\n', file=sys.stderr)
