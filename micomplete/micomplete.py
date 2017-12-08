@@ -58,7 +58,7 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
-def workerMain(seqObject, seqType, argv, q=None, name=None):
+def _worker(seqObject, seqType, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
     baseName = os.path.basename(seqObject).split('.')[0]
     if not name:
@@ -154,7 +154,7 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
         else:
             print('\t'.join(map(str, write_request)))
 
-def listener(q):
+def _listener(q):
     """
     Function responsible for outputting information in a thread safe manner.
     Recieves write requests from Queue and writes different targets depending
@@ -422,13 +422,13 @@ def main():
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
-    writer = pool.apply_async(listener, (q,))
+    writer = pool.apply_async(_listener, (q,))
     
     jobs = []
     for i in inputSeqs: 
         if len(i) == 2:
             i.append(None)
-        job = pool.apply_async(workerMain, (i[0], i[1], args, q, i[2]))
+        job = pool.apply_async(_worker, (i[0], i[1], args, q, i[2]))
         jobs.append(job)
 
     # get() all processes to catch errors
