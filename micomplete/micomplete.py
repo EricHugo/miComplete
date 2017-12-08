@@ -30,6 +30,7 @@ from itertools import chain
 from termcolor import cprint
 import Bio
 import argparse
+import tempfile
 import logging
 import sys
 import shutil
@@ -83,6 +84,8 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
         comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
                 argv.weights, argv.hlist, argv.linkage, argv.debug)
         hmmMatches, dupHmms, totalHmms = comp.get_completeness()
+        if argv.hlist:
+            comp.print_hmm_lists(directory=argv.hlist)
         try:
             fracHmm = len(hmmMatches) / len(totalHmms)
         except TypeError:
@@ -141,6 +144,8 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
             output.append('%0.3f' % weightedComp)
             output.append('%0.3f' % weightedRedun)
     # only calculate assembly stats if filetype is fna
+    if argv.hlist:
+        comp.print_hmm_lists(directory=argv.hlist)
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
         N50, L50, N90, L90 = fastats.get_stats(seqLength, allLengths)
     else:
@@ -340,8 +345,8 @@ def main():
     parser.add_argument("-c", "--completeness", required=False, default=False,
             action='store_true', help="""Do completeness check (also requires
             a set of HMMs to have been provided""") 
-    parser.add_argument("--hlist", required=False, default=False,
-            action='store_true', help="""Write list of Present, Absent and
+    parser.add_argument("--hlist", required=False, default=None, type=str,
+            nargs='?', help="""Write list of Present, Absent and
             Duplicated markers for each organism to file""")
     parser.add_argument("--hmms", required=False, default=False,
             help="""Specifies a set of HMMs to be used for completeness check 
