@@ -29,7 +29,6 @@ class calcCompleteness():
         self.fasta = fasta
         self.linkage = linkage
         self.weights = weights
-        self.hlist = hlist
         self.debug = debug
         print("Starting completeness for " + fasta, file=sys.stderr)
         self.hmmNames = set({})
@@ -101,8 +100,8 @@ class calcCompleteness():
                     self.filledHmms[hmm].append(gene)
         self.dupHmms = [ hmm for hmm, genes in self.filledHmms.items()
                 if len(genes) > 1 ]
-        if self.hlist and not self.linkage:
-            self.print_hmm_lists()
+        #if self.hlist and not self.linkage:
+        #    self.print_hmm_lists()
         return self.filledHmms, self.dupHmms, self.hmmNames
 
     def quantify_completeness(self):
@@ -123,17 +122,22 @@ class calcCompleteness():
         numTotalHmms = sum(allDupHmms)
         return numFoundHmms, numTotalHmms, numHmms
 
-    def print_hmm_lists(self):
+    def print_hmm_lists(self, directory='.'):
         """Prints the contents of found, duplicate and and not found markers"""
-        hlistName = "%s_hmms.list" % (self.baseName)
+        if directory:
+            try:
+                os.mkdir(directory)
+            except FileExistsError:
+                pass
+        hlistName = directory + "/%s_hmms.list" % (self.baseName)
         with open(hlistName, 'w+') as seenList:
             for eachHmm in self.seenHmms:
                 seenList.write("%s\n" % eachHmm)
-        dupListName = "%s_hmms_duplicate.list" % (self.baseName)
+        dupListName = directory + "/%s_hmms_duplicate.list" % (self.baseName)
         with open(dupListName, 'w+') as dupList:
             for eachDup in self.dupHmms:
                 dupList.write("%s\n" % eachDup)
-        missingListName = "%s_hmms_missing.list" % (self.baseName)
+        missingListName = directory + "/%s_hmms_missing.list" % (self.baseName)
         with open(missingListName, 'w+') as missingList:
             for hmm in self.hmmNames:
                 if hmm not in self.seenHmms:

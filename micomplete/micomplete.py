@@ -30,6 +30,7 @@ from itertools import chain
 from termcolor import cprint
 import Bio
 import argparse
+import tempfile
 import logging
 import sys
 import shutil
@@ -58,7 +59,7 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
-def workerMain(seqObject, seqType, argv, q=None, name=None):
+def _worker(seqObject, seqType, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
     baseName = os.path.basename(seqObject).split('.')[0]
     if not name:
@@ -83,6 +84,8 @@ def workerMain(seqObject, seqType, argv, q=None, name=None):
         comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
                 argv.weights, argv.hlist, argv.linkage, argv.debug)
         hmmMatches, dupHmms, totalHmms = comp.get_completeness()
+        if argv.hlist:
+            comp.print_hmm_lists(directory=argv.hlist)
         try:
             fracHmm = len(hmmMatches) / len(totalHmms)
         except TypeError:
@@ -141,6 +144,8 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
             output.append('%0.3f' % weightedComp)
             output.append('%0.3f' % weightedRedun)
     # only calculate assembly stats if filetype is fna
+    if argv.hlist:
+        comp.print_hmm_lists(directory=argv.hlist)
     if not re.match("(gb.?.?)|genbank|faa", seqType): 
         N50, L50, N90, L90 = fastats.get_stats(seqLength, allLengths)
     else:
@@ -154,7 +159,7 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
         else:
             print('\t'.join(map(str, write_request)))
 
-def listener(q):
+def _listener(q):
     """
     Function responsible for outputting information in a thread safe manner.
     Recieves write requests from Queue and writes different targets depending
@@ -340,8 +345,8 @@ def main():
     parser.add_argument("-c", "--completeness", required=False, default=False,
             action='store_true', help="""Do completeness check (also requires
             a set of HMMs to have been provided""") 
-    parser.add_argument("--hlist", required=False, default=False,
-            action='store_true', help="""Write list of Present, Absent and
+    parser.add_argument("--hlist", required=False, default=None, type=str,
+            nargs='?', help="""Write list of Present, Absent and
             Duplicated markers for each organism to file""")
     parser.add_argument("--hmms", required=False, default=False,
             help="""Specifies a set of HMMs to be used for completeness check 
@@ -394,7 +399,8 @@ def main():
                 raise RuntimeError('Unable to find hmmsearch in path')
 
     with open(args.sequence) as seq_file:
-        inputSeqs = [ seq.strip().split('\t') for seq in seq_file ]
+        inputSeqs = [ seq.strip().split('\t') for seq in seq_file 
+                    if not re.match('#|\n', seq) ]
     
     if sys.version_info > (3, 0):
         print(*inputSeqs, sep='\n', file=sys.stderr)
@@ -421,13 +427,13 @@ def main():
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
-    writer = pool.apply_async(listener, (q,))
+    writer = pool.apply_async(_listener, (q,))
     
     jobs = []
     for i in inputSeqs: 
         if len(i) == 2:
             i.append(None)
-        job = pool.apply_async(workerMain, (i[0], i[1], args, q, i[2]))
+        job = pool.apply_async(_worker, (i[0], i[1], args, q, i[2]))
         jobs.append(job)
 
     # get() all processes to catch errors
