@@ -57,10 +57,11 @@ class calcCompleteness():
                     stderr=subprocess.STDOUT)
         if errcode > 0:
             cprint("Warning:", 'red', end=' ', file=sys.stderr)
-            print("Error thrown by HMMER, is %s empty?" % self.fasta, file=sys.stderr)
+            print("Error thrown by HMMER, is %s empty?" % self.fasta, 
+                    file=sys.stderr)
         return self.tblout, errcode
 
-    def get_completeness(self):
+    def get_completeness(self, strict=False):
         """
         Reads the out table of hmmer to find which hmms are present, and
         which are duplicated. Duplicates are only considered duplicates if
@@ -83,8 +84,13 @@ class calcCompleteness():
                     if re.match("#$", foundHmm):
                         break
                     if re.search("^" + hmm + "$", foundHmm.split()[2]):
-                        #slice notation gathers column 0 and 4
-                        self.hmmMatches[hmm].append(foundHmm.split()[0:5:4])
+                        foundHmm = foundHmm.split()
+                        # gathers name, evalue, score, bias
+                        self.hmmMatches[hmm].append([foundHmm[0], foundHmm[4],
+                            foundHmm[5], foundHmm[6], foundHmm[7]])
+                        print(self.hmmMatches[hmm])
+                        # placeholder check for equal magnitude score and bias
+                        # future mark is suspicious
                         self.seenHmms.add(hmm)
         if self.debug:
             print(self.hmmMatches)
@@ -94,6 +100,10 @@ class calcCompleteness():
         for hmm, geneMatches in self.hmmMatches.items():
             # sort by lowest eval to fill lowest first
             for gene in sorted(geneMatches, key=lambda ev: float(ev[1])):
+                if strict:
+                    # skip if sequence match found to be dubious
+                    if self.suspicion_check(gene):
+                        continue
                 if hmm not in self.filledHmms:
                     self.filledHmms[hmm].append(gene)
                 elif float(gene[1]) < pow(float(self.filledHmms[hmm][0][1]), 1/2):
@@ -103,6 +113,17 @@ class calcCompleteness():
         #if self.hlist and not self.linkage:
         #    self.print_hmm_lists()
         return self.filledHmms, self.dupHmms, self.hmmNames
+    
+    def suspicion_check(self, gene_match):
+        """Check if bias is in the same order of magnitude as the match
+        and if the evalue for the best domain is high. Both indicating 
+        a dubious result."""
+        dubious = False
+        if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
+                float(gene_match[4]) > 0.01:
+            cprint(gene_match, "magenta", file=sys.stderr)
+            dubious = True
+        return dubious
 
     def quantify_completeness(self):
         """
