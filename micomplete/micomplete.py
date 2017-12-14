@@ -93,16 +93,17 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
         if fracHmm < argv.cutoff:
             percHmm = fracHmm * 100
             cprint("Warning:", "red", end=' ', file=sys.stderr)
-            print("%i%% markers were found in %s, cannot be used to calculate linkage" 
-                    % (percHmm, name), file=sys.stderr)
+            print("%i%% of markers were found in %s, cannot be used to calculate linkage" 
+        % (percHmm, name), file=sys.stderr)
             return
         linkage = linkageAnalysis(seqObject, name, seqType, 
                 proteome, seqstats, hmmMatches, argv.debug, q)
         linkageVals = linkage.calculate_linkage_scores()
+        for hmm, match in hmmMatches.items():
+            linkageVals[hmm].append(match)
         q.put(linkageVals)
         return linkageVals
-    else:
-        compile_results(seqType, name, argv, proteome, seqstats, q)
+    compile_results(seqType, name, argv, proteome, seqstats, q)
 
 def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     """
@@ -169,6 +170,7 @@ def _listener(q):
     """
     weights_file = "micomplete_weights.temp"
     weights_tmp = open(weights_file, mode='w+')
+    all_bias = defaultdict(list)
     while True:
         write_request = q.get()
         #print(write_request)
@@ -183,13 +185,24 @@ def _listener(q):
             else:
                 print('\t'.join(map(str, write_request)))
             continue
-        for hmm, weight in sorted(write_request.items(), 
+        for hmm, match in sorted(write_request.items(), 
                 key=lambda e: e[1], reverse=True):
-            weight = (str(hmm) + '\t' + str(weight) + '\n')
+            { all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1 
+                    else all_bias[hmm].append(0) for 
+                    stats in match[1] }
+            weight = (str(hmm) + '\t' + str(match[0]) + '\n')
             weights_tmp.write(weight)
         weights_tmp.write('-\n')
         weights_tmp.flush()
-        boxplot = True
+    for hmm, bias in all_bias.items():
+        total_fraction_bias = sum(bias) / len(bias)
+        if total_fraction_bias > 0.5:
+            cprint("Warning:", "red", file=sys.stderr, end=' ') 
+            print("More than %s%% of found markers had a higher than %s%% of" % 
+                    (0.5 * 100, 0.1 * 100), file=sys.stderr,
+                    end=' ')
+            print("score bias or marker %s. Consider not using this marker." % 
+                    hmm, file=sys.stderr)
     weights_tmp.close()
     return weights_file
 

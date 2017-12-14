@@ -88,7 +88,6 @@ class calcCompleteness():
                         # gathers name, evalue, score, bias
                         self.hmmMatches[hmm].append([foundHmm[0], foundHmm[4],
                             foundHmm[5], foundHmm[6], foundHmm[7]])
-                        print(self.hmmMatches[hmm])
                         # placeholder check for equal magnitude score and bias
                         # future mark is suspicious
                         self.seenHmms.add(hmm)
