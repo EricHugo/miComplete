@@ -21,7 +21,7 @@ import os
 
 class calcCompleteness():
     def __init__(self, fasta, baseName, hmms, evalue=1e-10, weights=None, 
-            hlist=False, linkage=False, debug=False):
+            hlist=False, linkage=False, debug=False, lenient=False):
         self.baseName = baseName
         self.evalue = "-E %s" % (str(evalue))
         self.tblout = "%s.tblout" % (self.baseName)
@@ -29,6 +29,7 @@ class calcCompleteness():
         self.fasta = fasta
         self.linkage = linkage
         self.weights = weights
+        self.lenient = lenient
         self.debug = debug
         print("Starting completeness for " + fasta, file=sys.stderr)
         self.hmmNames = set({})
@@ -99,7 +100,7 @@ class calcCompleteness():
         for hmm, geneMatches in self.hmmMatches.items():
             # sort by lowest eval to fill lowest first
             for gene in sorted(geneMatches, key=lambda ev: float(ev[1])):
-                if strict:
+                if not self.lenient:
                     # skip if sequence match found to be dubious
                     if self.suspicion_check(gene):
                         continue

@@ -81,8 +81,9 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
             assert argv.hmms
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
-        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
-                argv.weights, argv.hlist, argv.linkage, argv.debug)
+        comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue, 
+                weights=argv.weights, hlist=argv.hlist, linkage=argv.linkage, 
+                lenient=argv.lenient, debug=argv.debug)
         hmmMatches, dupHmms, totalHmms = comp.get_completeness()
         if argv.hlist:
             comp.print_hmm_lists(directory=argv.hlist)
@@ -119,8 +120,9 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
         fastats, seqLength, allLengths, GC = "-", "-", "-", "-"
     output.extend((name, seqLength, GC))
     if argv.completeness:
-        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
-                argv.weights, argv.hlist, argv.linkage, argv.debug)
+        comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue, 
+                weights=argv.weights, hlist=argv.hlist, linkage=argv.linkage, 
+                lenient=argv.lenient, debug=argv.debug)
         filledHmms, redunHmms, totalHmms = comp.quantify_completeness()
         try:
             numHmms = filledHmms
@@ -201,7 +203,7 @@ def _listener(q):
             print("More than %s%% of found markers had a higher than %s%% of" % 
                     (0.5 * 100, 0.1 * 100), file=sys.stderr,
                     end=' ')
-            print("score bias or marker %s. Consider not using this marker." % 
+            print("score bias in marker %s. Consider not using this marker." % 
                     hmm, file=sys.stderr)
     weights_tmp.close()
     return weights_file
@@ -356,8 +358,12 @@ def main():
     parser.add_argument("-t", "--total", required=False, default=False,
             action='store_true', help="""Print total (not implemented)""")
     parser.add_argument("-c", "--completeness", required=False, default=False,
-            action='store_true', help="""Do completeness check (also requires
+            action='store_true', help="""Perform completeness check (also requires
             a set of HMMs to have been provided""") 
+    parser.add_argument("--lenient", action='store_true', default=False,
+            help="""By default miComplete drops hits with too high bias 
+            or too low best domain score. This argument disables that behavior, 
+            permitting any hit that meets the evalue requirements.""")
     parser.add_argument("--hlist", required=False, default=None, type=str,
             nargs='?', help="""Write list of Present, Absent and
             Duplicated markers for each organism to file""")
