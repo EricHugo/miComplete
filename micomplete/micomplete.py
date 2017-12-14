@@ -67,6 +67,9 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
     if argv.linkage or argv.completeness:
         if re.match("(gb.?.?)|genbank", seqType):
             proteome = extract_gbk_trans(seqObject)
+            if os.stat(proteome).st_size == 0:
+                contigs = get_contigs_gbk(seqObject, name=name)
+                proteome = create_proteome(contigs, name)
         elif seqType == "fna":
             proteome = create_proteome(seqObject, name)
         elif seqType == "faa":
@@ -340,6 +343,18 @@ def extract_gbk_trans(gbkfile, outfile=None):
     output_handle.flush()
     output_handle.close()
     return outfile
+
+def get_contigs_gbk(gbk, name=None):
+    """Extracts all sequences from gbk file, returns filename"""
+    handle = open(gbk, mode='r')
+    if not name:
+        name = os.basename(gbk).split('.')[0]
+    out_handle = open(name, mode='w')
+    for seq in SeqIO.parse(handle, "genbank"):
+        out_handle.write(">" + seq.id + "\n")
+        out_handle.write(str(seq.seq) + "\n")
+    out_handle.close()
+    return name
 
 def main():
     parser = argparse.ArgumentParser(
