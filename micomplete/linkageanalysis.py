@@ -101,7 +101,7 @@ class linkageAnalysis():
             self.linkageAbsVals.items()])
         #print(self.linkageAbsVals)
         #print(self.totalDistance)
-        self.linkageRelVals = {hmm: (linkVal / self.totalDistance)
+        self.linkageRelVals = {hmm: [(linkVal / self.totalDistance)]
                 for hmm, linkVal in self.linkageAbsVals.items()}
         #print(self.linkageRelVals)
         # Send results to function with lock to write to single file

@@ -67,6 +67,9 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
     if argv.linkage or argv.completeness:
         if re.match("(gb.?.?)|genbank", seqType):
             proteome = extract_gbk_trans(seqObject)
+            if os.stat(proteome).st_size == 0:
+                contigs = get_contigs_gbk(seqObject, name=name)
+                proteome = create_proteome(contigs, name)
         elif seqType == "fna":
             proteome = create_proteome(seqObject, name)
         elif seqType == "faa":
@@ -81,8 +84,9 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
             assert argv.hmms
         except (AssertionError, NameError):
             raise NameError("A set of HMMs must be provided to calculate linkage")
-        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
-                argv.weights, argv.hlist, argv.linkage, argv.debug)
+        comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue, 
+                weights=argv.weights, hlist=argv.hlist, linkage=argv.linkage, 
+                lenient=argv.lenient, debug=argv.debug)
         hmmMatches, dupHmms, totalHmms = comp.get_completeness()
         if argv.hlist:
             comp.print_hmm_lists(directory=argv.hlist)
@@ -93,16 +97,17 @@ def _worker(seqObject, seqType, argv, q=None, name=None):
         if fracHmm < argv.cutoff:
             percHmm = fracHmm * 100
             cprint("Warning:", "red", end=' ', file=sys.stderr)
-            print("%i%% markers were found in %s, cannot be used to calculate linkage" 
-                    % (percHmm, name), file=sys.stderr)
+            print("%i%% of markers were found in %s, cannot be used to calculate linkage" 
+        % (percHmm, name), file=sys.stderr)
             return
         linkage = linkageAnalysis(seqObject, name, seqType, 
                 proteome, seqstats, hmmMatches, argv.debug, q)
         linkageVals = linkage.calculate_linkage_scores()
+        for hmm, match in hmmMatches.items():
+            linkageVals[hmm].append(match)
         q.put(linkageVals)
         return linkageVals
-    else:
-        compile_results(seqType, name, argv, proteome, seqstats, q)
+    compile_results(seqType, name, argv, proteome, seqstats, q)
 
 def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     """
@@ -118,8 +123,9 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
         fastats, seqLength, allLengths, GC = "-", "-", "-", "-"
     output.extend((name, seqLength, GC))
     if argv.completeness:
-        comp = calcCompleteness(proteome, name, argv.hmms, argv.evalue, 
-                argv.weights, argv.hlist, argv.linkage, argv.debug)
+        comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue, 
+                weights=argv.weights, hlist=argv.hlist, linkage=argv.linkage, 
+                lenient=argv.lenient, debug=argv.debug)
         filledHmms, redunHmms, totalHmms = comp.quantify_completeness()
         try:
             numHmms = filledHmms
@@ -169,6 +175,7 @@ def _listener(q):
     """
     weights_file = "micomplete_weights.temp"
     weights_tmp = open(weights_file, mode='w+')
+    all_bias = defaultdict(list)
     while True:
         write_request = q.get()
         #print(write_request)
@@ -183,13 +190,24 @@ def _listener(q):
             else:
                 print('\t'.join(map(str, write_request)))
             continue
-        for hmm, weight in sorted(write_request.items(), 
+        for hmm, match in sorted(write_request.items(), 
                 key=lambda e: e[1], reverse=True):
-            weight = (str(hmm) + '\t' + str(weight) + '\n')
+            { all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1 
+                    else all_bias[hmm].append(0) for 
+                    stats in match[1] }
+            weight = (str(hmm) + '\t' + str(match[0]) + '\n')
             weights_tmp.write(weight)
         weights_tmp.write('-\n')
         weights_tmp.flush()
-        boxplot = True
+    for hmm, bias in all_bias.items():
+        total_fraction_bias = sum(bias) / len(bias)
+        if total_fraction_bias > 0.5:
+            cprint("Warning:", "red", file=sys.stderr, end=' ') 
+            print("More than %s%% of found markers had a higher than %s%% of" % 
+                    (0.5 * 100, 0.1 * 100), file=sys.stderr,
+                    end=' ')
+            print("score bias in marker %s. Consider not using this marker." % 
+                    hmm, file=sys.stderr)
     weights_tmp.close()
     return weights_file
 
@@ -326,6 +344,18 @@ def extract_gbk_trans(gbkfile, outfile=None):
     output_handle.close()
     return outfile
 
+def get_contigs_gbk(gbk, name=None):
+    """Extracts all sequences from gbk file, returns filename"""
+    handle = open(gbk, mode='r')
+    if not name:
+        name = os.basename(gbk).split('.')[0]
+    out_handle = open(name, mode='w')
+    for seq in SeqIO.parse(handle, "genbank"):
+        out_handle.write(">" + seq.id + "\n")
+        out_handle.write(str(seq.seq) + "\n")
+    out_handle.close()
+    return name
+
 def main():
     parser = argparse.ArgumentParser(
         description="""
@@ -343,8 +373,12 @@ def main():
     parser.add_argument("-t", "--total", required=False, default=False,
             action='store_true', help="""Print total (not implemented)""")
     parser.add_argument("-c", "--completeness", required=False, default=False,
-            action='store_true', help="""Do completeness check (also requires
+            action='store_true', help="""Perform completeness check (also requires
             a set of HMMs to have been provided""") 
+    parser.add_argument("--lenient", action='store_true', default=False,
+            help="""By default miComplete drops hits with too high bias 
+            or too low best domain score. This argument disables that behavior, 
+            permitting any hit that meets the evalue requirements.""")
     parser.add_argument("--hlist", required=False, default=None, type=str,
             nargs='?', help="""Write list of Present, Absent and
             Duplicated markers for each organism to file""")
