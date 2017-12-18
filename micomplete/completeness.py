@@ -62,7 +62,7 @@ class calcCompleteness():
                     file=sys.stderr)
         return self.tblout, errcode
 
-    def get_completeness(self, strict=False):
+    def get_completeness(self):
         """
         Reads the out table of hmmer to find which hmms are present, and
         which are duplicated. Duplicates are only considered duplicates if
@@ -89,8 +89,6 @@ class calcCompleteness():
                         # gathers name, evalue, score, bias
                         self.hmmMatches[hmm].append([foundHmm[0], foundHmm[4],
                             foundHmm[5], foundHmm[6], foundHmm[7]])
-                        # placeholder check for equal magnitude score and bias
-                        # future mark is suspicious
                         self.seenHmms.add(hmm)
         if self.debug:
             print(self.hmmMatches)
