@@ -100,7 +100,7 @@ class calcCompleteness():
             for gene in sorted(geneMatches, key=lambda ev: float(ev[1])):
                 if not self.lenient:
                     # skip if sequence match found to be dubious
-                    if self.suspicion_check(gene):
+                    if suspiscion_check(gene):
                         continue
                 if hmm not in self.filledHmms:
                     self.filledHmms[hmm].append(gene)
@@ -111,17 +111,6 @@ class calcCompleteness():
         #if self.hlist and not self.linkage:
         #    self.print_hmm_lists()
         return self.filledHmms, self.dupHmms, self.hmmNames
-    
-    def suspicion_check(self, gene_match):
-        """Check if bias is in the same order of magnitude as the match
-        and if the evalue for the best domain is high. Both indicating 
-        a dubious result."""
-        dubious = False
-        if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
-                float(gene_match[4]) > 0.01:
-            cprint(gene_match, "magenta", file=sys.stderr)
-            dubious = True
-        return dubious
 
     def quantify_completeness(self):
         """
@@ -183,4 +172,12 @@ class calcCompleteness():
         weightedComplete = round(weightedComplete, 3)
         return weightedComplete, weightedRedun
 
-
+def suspiscion_check(gene_match):
+    """Check if bias is in the same order of magnitude as the match
+    and if the evalue for the best domain is high. Both indicating 
+    a dubious result."""
+    if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
+            float(gene_match[4]) > 0.01:
+        cprint(gene_match, "magenta", file=sys.stderr)
+        return True
+    return False
