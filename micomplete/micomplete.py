@@ -32,6 +32,7 @@ import Bio
 import argparse
 import tempfile
 import logging
+import logging.handlers
 import sys
 import shutil
 import subprocess
@@ -116,7 +117,6 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
     stdout.
     """
     output = []
-    # unpack tuple
     if not seqType == 'faa':
         fastats, seqLength, allLengths, GC = seqstats
     else:
@@ -311,12 +311,13 @@ def extract_gbk_trans(gbkfile, outfile=None):
                             table=ttable, cds=True, to_stop=True)) + '\n')
                     except Bio.Data.CodonTable.TranslationError:
                         continue
-                    continue
+                    #conitnue # not sure why it was here. miscopied from above?
                     output_handle.write(header)
                     output_handle.write(' # ' + start + ' # ' + end + ' # ' + 
                             strand + ' # ID=' + str(contig_n) + '_' + str(cds_n)
                             + ';')
                     output_handle.write(fasta_trans)
+                    continue
                 # very occasionally translated seqs have two or more locations
                 # regex search to handle such cases
                 output_handle.write(header)
@@ -404,8 +405,7 @@ def main():
             type=str, help="""Log name (default=miComplete.log)""")
     parser.add_argument("-v", "--verbose", required=False, default=False,
             action='store_true', help="""Enable verbose logging""")
-    parser.add_argument("--debug", required=False, default=False, 
-            action='store_true')
+    parser.add_argument("--debug", required=False, default=False, action='store_true')
         
     args = parser.parse_args()
     logger = logging.getLogger("miComplete")
@@ -415,11 +415,6 @@ def main():
         logger.setLevel(logging.INFO)
     else:
         logger.setLevel(logging.WARNING)
-    logfile = logging.FileHandler(args.log, mode='w+')
-    logformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logfile.setFormatter(logformatter)
-    logger.addHandler(logfile)
-    logger.info("miComplete has started")
 
     if args.completeness or args.linkage:
         try:
@@ -462,6 +457,12 @@ def main():
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
     writer = pool.apply_async(_listener, (q,))
+    #logfile = logging.FileHandler(args.log, mode='w+')
+    lq = logging.handlers.QueueHandler(q)
+    logformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    lq.setFormatter(logformatter)
+    logger.addHandler(lq)
+    logger.info("miComplete has started")
     
     jobs = []
     for i in inputSeqs: 
