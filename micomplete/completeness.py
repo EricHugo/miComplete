@@ -62,7 +62,7 @@ class calcCompleteness():
                     file=sys.stderr)
         return self.tblout, errcode
 
-    def get_completeness(self, strict=False):
+    def get_completeness(self, multi_hit=1/2, strict=False):
         """
         Reads the out table of hmmer to find which hmms are present, and
         which are duplicated. Duplicates are only considered duplicates if
