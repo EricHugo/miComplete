@@ -161,9 +161,9 @@ def compile_results(seqType, name, argv, proteome, seqstats, q=None):
         q.put(output)
     else:
         if sys.version_info > (3, 0):
-            print(*write_request, sep='\t')
+            print(*output, sep='\t')
         else:
-            print('\t'.join(map(str, write_request)))
+            print('\t'.join(map(str, output)))
 
 def _listener(q):
     """
