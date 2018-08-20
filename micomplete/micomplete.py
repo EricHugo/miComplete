@@ -349,7 +349,7 @@ def get_contigs_gbk(gbk, name=None):
     """Extracts all sequences from gbk file, returns filename"""
     handle = open(gbk, mode='r')
     if not name:
-        name = os.basename(gbk).split('.')[0]
+        name = os.path.basename(gbk).split('.')[0]
     out_handle = open(name, mode='w')
     for seq in SeqIO.parse(handle, "genbank"):
         out_handle.write(">" + seq.id + "\n")
