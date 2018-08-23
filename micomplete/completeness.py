@@ -2,29 +2,28 @@
 # See LICENSE for details.
 
 """
-Module investigates the completeness of a given genome with respect to a given 
-set of HMM makers, in so far as it runs HMMer and parses the output. 
+Module investigates the completeness of a given genome with respect to a given
+set of HMM makers, in so far as it runs HMMer and parses the output.
 
 
 """
 
 from __future__ import print_function, division
-from distutils import spawn
 from collections import defaultdict
-from termcolor import cprint
 import sys
 import math
 import subprocess
 import re
 import os
+from termcolor import cprint
 
 
 class calcCompleteness():
-    def __init__(self, fasta, baseName, hmms, evalue=1e-10, weights=None, 
-            hlist=False, linkage=False, debug=False, lenient=False):
-        self.baseName = baseName
+    def __init__(self, fasta, base_name, hmms, evalue=1e-10, weights=None,
+                 hlist=False, linkage=False, debug=False, lenient=False):
+        self.base_name = base_name
         self.evalue = "-E %s" % (str(evalue))
-        self.tblout = "%s.tblout" % (self.baseName)
+        self.tblout = "%s.tblout" % (self.base_name)
         self.hmms = hmms
         self.fasta = fasta
         self.linkage = linkage
@@ -32,14 +31,14 @@ class calcCompleteness():
         self.lenient = lenient
         self.debug = debug
         print("Starting completeness for " + fasta, file=sys.stderr)
-        self.hmmNames = set({})
+        self.hmm_names = set({})
         with open(self.hmms) as hmmfile:
             for line in hmmfile:
                 if re.search('^NAME', line):
                     name = line.split(' ')
-                    self.hmmNames.add(name[2].strip())
+                    self.hmm_names.add(name[2].strip())
         if self.debug:
-            print(self.hmmNames)
+            print(self.hmm_names)
 
     def hmm_search(self):
         """
@@ -47,19 +46,19 @@ class calcCompleteness():
         Produces an output table from hmmsearch, function returns its name.
         """
         hmmsearch = ["hmmsearch", self.evalue, "--tblout", self.tblout,
-                self.hmms, self.fasta]
+                     self.hmms, self.fasta]
         if self.debug:
             print(hmmsearch)
         if sys.version_info > (3, 4):
-            compProc = subprocess.run(hmmsearch, stdout=subprocess.DEVNULL)
-            errcode = compProc.returncode
+            comp_proc = subprocess.run(hmmsearch, stdout=subprocess.DEVNULL)
+            errcode = comp_proc.returncode
         else:
             errcode = subprocess.call(hmmsearch, stdout=open(os.devnull, 'wb'),
-                    stderr=subprocess.STDOUT)
+                                      stderr=subprocess.STDOUT)
         if errcode > 0:
             cprint("Warning:", 'red', end=' ', file=sys.stderr)
-            print("Error thrown by HMMER, is %s empty?" % self.fasta, 
-                    file=sys.stderr)
+            print("Error thrown by HMMER, is %s empty?" % self.fasta,
+                  file=sys.stderr)
         return self.tblout, errcode
 
     def get_completeness(self, multi_hit=1/2, strict=False):
@@ -73,48 +72,49 @@ class calcCompleteness():
         deulicates, list of hmms with duplicates, and names of all hmms 
         which were searched for.
         """
-        tblout, errcode = self.hmm_search()
+        _, errcode = self.hmm_search()
         if errcode > 0:
             return 0, 0, 0
-        self.hmmMatches = defaultdict(list)
-        self.seenHmms = set()
+        self.hmm_matches = defaultdict(list)
+        self.seen_hmms = set()
         # gather gene name and evalue in dict by key[hmm]
-        for hmm in self.hmmNames:
-            with open(self.tblout) as hmmTable:
-                for foundHmm in hmmTable:
-                    if re.match("#$", foundHmm):
+        for hmm in self.hmm_names:
+            with open(self.tblout) as hmm_table:
+                for found_hmm in hmm_table:
+                    if re.match("#$", found_hmm):
                         break
-                    if re.search("^" + hmm + "$", foundHmm.split()[2]):
-                        foundHmm = foundHmm.split()
+                    if re.search("^" + hmm + "$", found_hmm.split()[2]):
+                        found_hmm = found_hmm.split()
                         # gathers name, evalue, score, bias
-                        self.hmmMatches[hmm].append([foundHmm[0], foundHmm[4],
-                            foundHmm[5], foundHmm[6], foundHmm[7]])
-                        self.seenHmms.add(hmm)
+                        self.hmm_matches[hmm].append([found_hmm[0], found_hmm[4],
+                                                      found_hmm[5], found_hmm[6],
+                                                      found_hmm[7]])
+                        self.seen_hmms.add(hmm)
         if self.debug:
-            print(self.hmmMatches)
-            print(len(self.hmmMatches))
-        self.filledHmms = defaultdict(list)
+            print(self.hmm_matches)
+            print(len(self.hmm_matches))
+        self.filled_hmms = defaultdict(list)
         # section can be expanded to check for unique gene matches
-        for hmm, geneMatches in self.hmmMatches.items():
+        for hmm, gene_matches in self.hmm_matches.items():
             # sort by lowest eval to fill lowest first
-            for gene in sorted(geneMatches, key=lambda ev: float(ev[1])):
+            for gene in sorted(gene_matches, key=lambda ev: float(ev[1])):
                 if not self.lenient:
                     # skip if sequence match found to be dubious
                     if self.suspicion_check(gene):
                         continue
-                if hmm not in self.filledHmms:
-                    self.filledHmms[hmm].append(gene)
-                elif float(gene[1]) < pow(float(self.filledHmms[hmm][0][1]), 1/2):
-                    self.filledHmms[hmm].append(gene)
-        self.dupHmms = [ hmm for hmm, genes in self.filledHmms.items()
-                if len(genes) > 1 ]
+                if hmm not in self.filled_hmms:
+                    self.filled_hmms[hmm].append(gene)
+                elif float(gene[1]) < pow(float(self.filled_hmms[hmm][0][1]), 1/2):
+                    self.filled_hmms[hmm].append(gene)
+        self.dup_hmms = [hmm for hmm, genes in self.filled_hmms.items()
+                         if len(genes) > 1]
         #if self.hlist and not self.linkage:
         #    self.print_hmm_lists()
-        return self.filledHmms, self.dupHmms, self.hmmNames
-    
+        return self.filled_hmms, self.dup_hmms, self.hmm_names
+
     def suspicion_check(self, gene_match):
         """Check if bias is in the same order of magnitude as the match
-        and if the evalue for the best domain is high. Both indicating 
+        and if the evalue for the best domain is high. Both indicating
         a dubious result."""
         dubious = False
         if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
@@ -125,21 +125,21 @@ class calcCompleteness():
 
     def quantify_completeness(self):
         """
-        Function returns the number of found markers, duplicated markers, and 
+        Function returns the number of found markers, duplicated markers, and
         total number of markers.
         """
-        filledHmms, dupHmms, hmmNames = self.get_completeness()
+        filled_hmms, _, hmm_names = self.get_completeness()
         try:
-            numFoundHmms = len(filledHmms)
-            numHmms = len(hmmNames)
+            num_foundhmms = len(filled_hmms)
+            num_hmms = len(hmm_names)
         except TypeError:
-            numFoundHmms = 0
-            numTotalHmms = 0
-            numHmms = 0
-            return numFoundHmms, numTotalHmms, numHmms
-        allDupHmms = [ len(genes) for hmm, genes in self.filledHmms.items() ]
-        numTotalHmms = sum(allDupHmms)
-        return numFoundHmms, numTotalHmms, numHmms
+            num_foundhmms = 0
+            num_totalhmms = 0
+            num_hmms = 0
+            return num_foundhmms, num_totalhmms, num_hmms
+        all_duphmms = [len(genes) for hmm, genes in self.filled_hmms.items()]
+        num_totalhmms = sum(all_duphmms)
+        return num_foundhmms, num_totalhmms, num_hmms
 
     def print_hmm_lists(self, directory='.'):
         """Prints the contents of found, duplicate and and not found markers"""
@@ -148,39 +148,37 @@ class calcCompleteness():
                 os.mkdir(directory)
             except FileExistsError:
                 pass
-        hlistName = directory + "/%s_hmms.list" % (self.baseName)
-        with open(hlistName, 'w+') as seenList:
-            for eachHmm in self.seenHmms:
-                seenList.write("%s\n" % eachHmm)
-        dupListName = directory + "/%s_hmms_duplicate.list" % (self.baseName)
-        with open(dupListName, 'w+') as dupList:
-            for eachDup in self.dupHmms:
-                dupList.write("%s\n" % eachDup)
-        missingListName = directory + "/%s_hmms_missing.list" % (self.baseName)
-        with open(missingListName, 'w+') as missingList:
-            for hmm in self.hmmNames:
-                if hmm not in self.seenHmms:
-                    missingList.write("%s\n" % hmm)
-        return hlistName
+        hlist_name = directory + "/%s_hmms.list" % (self.base_name)
+        with open(hlist_name, 'w+') as seen_list:
+            for each_hmm in self.seen_hmms:
+                seen_list.write("%s\n" % each_hmm)
+        dup_list_name = directory + "/%s_hmms_duplicate.list" % (self.base_name)
+        with open(dup_list_name, 'w+') as dup_list:
+            for each_dup in self.dup_hmms:
+                dup_list.write("%s\n" % each_dup)
+        missing_list_name = directory + "/%s_hmms_missing.list" % (self.base_name)
+        with open(missing_list_name, 'w+') as missing_list:
+            for hmm in self.hmm_names:
+                if hmm not in self.seen_hmms:
+                    missing_list.write("%s\n" % hmm)
+        return hlist_name
 
-    def attribute_weights(self, numHmms):
+    def attribute_weights(self):
         """Using the markers found and duplicates from get_completeness(), and
         provided weights, adds up weight of present and duplicate markers"""
-        weightedComplete = 0
-        weightedRedun = 0
-        for hmm in self.seenHmms:
+        weighted_complete = 0
+        weighted_redun = 0
+        for hmm in self.seen_hmms:
             with open(self.weights, 'r') as weights:
-                for eachWeight in weights:
-                    if re.match(hmm + "\s", eachWeight):
-                        weightedComplete += float(eachWeight.split()[1])
-        for hmm in self.dupHmms:
+                for each_weight in weights:
+                    if re.match(hmm + "\s", each_weight):
+                        weighted_complete += float(each_weight.split()[1])
+        for hmm in self.dup_hmms:
             with open(self.weights, 'r') as weights:
-                for eachWeights in weights:
-                    if re.match(hmm + "\t", eachWeights):
-                        weightedRedun += float(eachWeights.split()[1])
-        weightedRedun = round(((weightedRedun + weightedComplete) /
-            weightedComplete), 3)
-        weightedComplete = round(weightedComplete, 3)
-        return weightedComplete, weightedRedun
-
-
+                for each_weight in weights:
+                    if re.match(hmm + "\t", each_weight):
+                        weighted_redun += float(each_weight.split()[1])
+        weighted_redun = round(((weighted_redun + weighted_complete) /
+                                weighted_complete), 3)
+        weighted_complete = round(weighted_complete, 3)
+        return weighted_complete, weighted_redun
