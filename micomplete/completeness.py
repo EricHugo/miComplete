@@ -65,11 +65,11 @@ class calcCompleteness():
         """
         Reads the out table of hmmer to find which hmms are present, and
         which are duplicated. Duplicates are only considered duplicates if
-        the evalue of the secondary hit is within the squareroot of the best 
+        the evalue of the secondary hit is within the squareroot of the best
         hit.
 
-        Returns: Dict of all hmms found with evalues for best and possible 
-        deulicates, list of hmms with duplicates, and names of all hmms 
+        Returns: Dict of all hmms found with evalues for best and possible
+        deulicates, list of hmms with duplicates, and names of all hmms
         which were searched for.
         """
         _, errcode = self.hmm_search()
