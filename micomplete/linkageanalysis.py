@@ -1,29 +1,34 @@
 # Copyright (c) Eric Hugoson.
 # See LICENSE for details.
 
+"""Returns the relative distances between all identified hmms within
+genome"""
+
 from __future__ import print_function, division
 from collections import defaultdict
 from itertools import chain
 import re
 
 class linkageAnalysis():
-    def __init__(self, seqObject, baseName, seqType, proteome, seqstats, 
-            hmmMatches, debug=False, q=None):
-        self.baseName = baseName
-        self.seqObject = seqObject
+    def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
+                 hmm_matches, debug=False, q=None):
+        self.base_name = base_name
+        self.seq_object = seq_object
         self.q = q
-        self.seqType = seqType
-        fastats, self.seqLength, allLengths, GC = seqstats
+        self.seq_type = seq_type
+        _, self.seq_length, _, _ = seqstats
         self.proteome = proteome
-        self.hmmMatches = hmmMatches
+        self.hmm_matches = hmm_matches
         self.debug = debug
-        if seqType == "faa":
+        self.hmm_locations = defaultdict(list)
+        self.locs = defaultdict(list)
+        if seq_type == "faa":
             raise TypeError('Sequences for linkage analysis needs to be fna or \
                     gbk')
-        with open(self.proteome) as protFile:
-            self.pHeaders = set(header for header in protFile 
-                    if re.search("^>", header))
-            #print(self.pHeaders)
+        with open(self.proteome) as prot_file:
+            self.p_headers = set(header for header in prot_file
+                                 if re.search("^>", header))
+            #print(self.p_headers)
 
     def get_locations(self):
         """Get locations or start and stop for each matched produced by
@@ -33,20 +38,19 @@ class linkageAnalysis():
         # the ID can be found in .tblout, therefore if match ID => get location
         # Force same format out of .gbk
         #
-        #print(self.hmmMatches)
+        #print(self.hmm_matches)
         #
-        ## for each matching gene get weight from self.pHeaders and put into
+        ## for each matching gene get weight from self.p_headers and put into
         ## new dict in format dict[hmm] = [[START, STOP], [START, STOP], [...]]
-        self.hmmLocations = defaultdict(list)
-        for hmm, genes in self.hmmMatches.items():
+        for hmm, genes in self.hmm_matches.items():
             for gene in genes:
-                for loc in self.pHeaders:
+                for loc in self.p_headers:
                     if re.search(re.escape(gene[0])+"\s", loc):
                         # convert to int and append to dict[hmm]
-                        self.hmmLocations[hmm].append(list(map(int,
-                            loc.split('#')[1:3])))
-            #print(self.hmmLocations[hmm])
-        return self.hmmLocations 
+                        self.hmm_locations[hmm].append(list(map(int,
+                                                      loc.split('#')[1:3])))
+            #print(self.hmm_locations[hmm])
+        return self.hmm_locations
 
     def find_neighbour_distance(self):
         """For each location of each matched marker the location of start and stop
@@ -54,37 +58,38 @@ class linkageAnalysis():
         # for each hmm compare loc(s) to all other locs to find lowest negative
         # value, these are closest neighbours up- and downstream
         try:
-            self.hmmLocations
+            self.hmm_locations
         except AttributeError:
             self.get_locations()
         if self.debug:
-            #self.hmmLocations["test"].append([110, 120])
-            #self.hmmLocations["test2"].append([510, 720])
+            #self.hmm_locations["test"].append([110, 120])
+            #self.hmm_locations["test2"].append([510, 720])
             pass
-        self.locs = defaultdict(list)
-        for hmm, locs in self.hmmLocations.items():
-            minFLoc = []
-            minRLoc = []
+        for hmm, locs in self.hmm_locations.items():
+            min_floc = []
+            min_rloc = []
             #print(hmm)
             for loc in locs:
                 # nested list comprehension
                 # reads locs and compares end of current read to start of all
                 # if negative -> adds sequence length to simulate circularity
-                forwardL = [[ int(each[0] - loc[1]) if int(each[0] - loc[1] > 0)
-                    else int(each[0] - loc[1] + self.seqLength) for each in forw ]
-                        for key, forw in self.hmmLocations.items() if not
-                        key == hmm ]
+                forward_l = [[int(each[0] - loc[1]) if int(each[0] - loc[1] > 0)
+                              else int(each[0] - loc[1] + self.seq_length) for
+                              each in forw]
+                             for key, forw in self.hmm_locations.items() if not
+                             key == hmm]
                 # flatten list
-                forwardLFlat = list(chain.from_iterable(forwardL))
-                minFLoc.append(min(forwardLFlat))
-                reverseL = [[ int(loc[0] - each[1]) if int(loc[0] - each[1] > 0)
-                    else int( loc[0] - each[1] + self.seqLength) for each in rev ]
-                        for key, rev in self.hmmLocations.items() if not
-                        key == hmm ]
-                reverseLFlat = list(chain.from_iterable(reverseL))
-                minRLoc.append(min(reverseLFlat))
-            self.locs[hmm].append(min(minFLoc))
-            self.locs[hmm].append(min(minRLoc))
+                forward_l_flat = list(chain.from_iterable(forward_l))
+                min_floc.append(min(forward_l_flat))
+                reverse_l = [[int(loc[0] - each[1]) if int(loc[0] - each[1] > 0)
+                              else int(loc[0] - each[1] + self.seq_length) for
+                              each in rev]
+                             for key, rev in self.hmm_locations.items() if not
+                             key == hmm]
+                reverse_l_flat = list(chain.from_iterable(reverse_l))
+                min_rloc.append(min(reverse_l_flat))
+            self.locs[hmm].append(min(min_floc))
+            self.locs[hmm].append(min(min_rloc))
             #print(self.locs[hmm])
         return self.locs
 
@@ -95,17 +100,16 @@ class linkageAnalysis():
             self.locs
         except AttributeError:
             self.find_neighbour_distance()
-        self.linkageAbsVals = {hmm: (loc[0] + loc[1]) / 2 for (hmm, loc) in
-                self.locs.items()}
-        self.totalDistance = sum([ linkVal for hmm, linkVal in
-            self.linkageAbsVals.items()])
-        #print(self.linkageAbsVals)
-        #print(self.totalDistance)
-        self.linkageRelVals = {hmm: [(linkVal / self.totalDistance)]
-                for hmm, linkVal in self.linkageAbsVals.items()}
-        #print(self.linkageRelVals)
+        linkage_absvals = {hmm: (loc[0] + loc[1]) / 2 for (hmm, loc) in
+                           self.locs.items()}
+        total_distance = sum([linkVal for hmm, linkVal in
+                              linkage_absvals.items()])
+        #print(linkage_absvals)
+        #print(total_distance)
+        linkage_rel_vals = {hmm: [(linkVal / total_distance)]
+                            for hmm, linkVal in linkage_absvals.items()}
+        #print(self.linkage_rel_vals)
         # Send results to function with lock to write to single file
         # Once all results are there average and make boxplot
         # Write resulting weights to .weights file
-        return self.linkageRelVals
-
+        return linkage_rel_vals
