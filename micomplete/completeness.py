@@ -15,12 +15,13 @@ import math
 import subprocess
 import re
 import os
+import logging
 from termcolor import cprint
 
 
 class calcCompleteness():
     def __init__(self, fasta, base_name, hmms, evalue=1e-10, weights=None,
-                 hlist=False, linkage=False, debug=False, lenient=False):
+                 hlist=False, linkage=False, logger=None, lenient=False):
         self.base_name = base_name
         self.evalue = "-E %s" % (str(evalue))
         self.tblout = "%s.tblout" % (self.base_name)
@@ -28,8 +29,9 @@ class calcCompleteness():
         self.fasta = fasta
         self.linkage = linkage
         self.weights = weights
+        self.logger = logger
+        logger.log(logging.WARNING, "test")
         self.lenient = lenient
-        self.debug = debug
         print("Starting completeness for " + fasta, file=sys.stderr)
         self.hmm_names = set({})
         with open(self.hmms) as hmmfile:
@@ -37,8 +39,6 @@ class calcCompleteness():
                 if re.search('^NAME', line):
                     name = line.split(' ')
                     self.hmm_names.add(name[2].strip())
-        if self.debug:
-            print(self.hmm_names)
 
     def hmm_search(self):
         """
@@ -47,8 +47,6 @@ class calcCompleteness():
         """
         hmmsearch = ["hmmsearch", self.evalue, "--tblout", self.tblout,
                      self.hmms, self.fasta]
-        if self.debug:
-            print(hmmsearch)
         if sys.version_info > (3, 4):
             comp_proc = subprocess.run(hmmsearch, stdout=subprocess.DEVNULL)
             errcode = comp_proc.returncode
@@ -90,9 +88,6 @@ class calcCompleteness():
                                                       found_hmm[5], found_hmm[6],
                                                       found_hmm[7]])
                         self.seen_hmms.add(hmm)
-        if self.debug:
-            print(self.hmm_matches)
-            print(len(self.hmm_matches))
         self.filled_hmms = defaultdict(list)
         # section can be expanded to check for unique gene matches
         for hmm, gene_matches in self.hmm_matches.items():
