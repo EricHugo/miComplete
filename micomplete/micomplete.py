@@ -72,27 +72,28 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
     logger = _configure_logger(q, name, log_lvl)
     logger.log(logging.INFO, "Started work on %s" % name)
     if argv.linkage or argv.completeness:
-        logger.log(logging.DEBUG, "Creating proteome")
+        logger.log(logging.INFO, "Creating proteome")
         if re.match("(gb.?.?)|genbank", seq_type):
-            logger.log(logging.DEBUG, "gbk-file, will attempt to extract\
+            logger.log(logging.INFO, "gbk-file, will attempt to extract\
                        proteome from gbk")
             proteome = extract_gbk_trans(seqObject)
             # if output file is found to be empty, extract contigs and translate
             if os.stat(proteome).st_size == 0:
-                logger.log(logging.DEBUG, "Failed to extract proteome from\
+                logger.log(logging.INFO, "Failed to extract proteome from\
                            gbk, will extract contigs and create proteome\
                            using create_proteome()")
                 contigs = get_contigs_gbk(seqObject, name=name)
                 proteome = create_proteome(contigs, name)
         elif seq_type == "fna":
-            logger.log(logging.DEBUG, "Nucleotide fasta, will translate\
+            logger.log(logging.INFO, "Nucleotide fasta, will translate\
                        using create_proteome()")
             proteome = create_proteome(seqObject, name)
         elif seq_type == "faa":
-            logger.log(logging.DEBUG, "Type is amino acid fasta already")
+            logger.log(logging.INFO, "Type is amino acid fasta already")
             proteome = seqObject
     else:
         proteome = False
+    logger.log(logging.INFO, "Gathering stats for sequence")
     fastats = parseSeqStats(seqObject, name, seq_type)
     seq_length, all_lengths, GCcontent = fastats.get_length()
     seqstats = (fastats, seq_length, all_lengths, GCcontent)
@@ -100,26 +101,34 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         try:
             assert argv.hmms
         except (AssertionError, NameError):
+            logger.log(logging.ERROR, "No HMMs were provided, but a linkage\
+                       calculation was requested.")
             raise NameError("A set of HMMs must be provided to calculate linkage")
+        logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
                                 logger=logger)
         hmm_matches, _, total_hmms = comp.get_completeness()
         if argv.hlist:
+            logger.log(logging.INFO, "Writing found/missing/duplicated marker\
+                       lists")
             comp.print_hmm_lists(directory=argv.hlist)
         try:
             frac_hmm = len(hmm_matches) / len(total_hmms)
         except TypeError:
             frac_hmm = 0
+        logger.log(logging.INFO, "Checking fraction of markers found in sequence")
         if frac_hmm < argv.cutoff:
             perc_hmm = frac_hmm * 100
             logger.log(logging.WARNING, "Only %i%% of markers were found in %s,\
-                       cannot be used to calculate linkage")
+                       will not be used to calculate linkage")
             cprint("Warning:", "red", end=' ', file=sys.stderr)
             print("%i%% of markers were found in %s, cannot be used to calculate\
                    linkage" % (perc_hmm, name), file=sys.stderr)
             return
+        logger.log(logging.INFO, "Starting linkage calculations of markers in\
+                   sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
                                   hmm_matches, argv.debug, q)
         linkage_vals = linkage.calculate_linkage_scores()
@@ -138,11 +147,13 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     """
     output = []
     if not seq_type == 'faa':
+        logger.log(logging.INFO, "Gathering nucleotide sequence stats")
         fastats, seq_length, all_lengths, GC = seqstats
     else:
         fastats, seq_length, all_lengths, GC = "-", "-", "-", "-"
     output.extend((name, seq_length, GC))
     if argv.completeness:
+        logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
@@ -164,6 +175,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
             redundance = 0
         output.append(redundance)
         if argv.weights:
+            logger.log(logging.INFO, "Gathering weighted completeness scores")
             if num_hmms > 0:
                 weighted_comp, weighted_redun = comp.attribute_weights(num_hmms)
             else:
@@ -172,6 +184,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
             output.append('%0.3f' % weighted_redun)
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
+        logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
         comp.print_hmm_lists(directory=argv.hlist)
     if not re.match("(gb.?.?)|genbank|faa", seq_type):
         N50, L50, N90, L90 = fastats.get_stats(seq_length, all_lengths)
