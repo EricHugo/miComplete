@@ -64,15 +64,32 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
     base_name = os.path.basename(seqObject).split('.')[0]
     if not name:
         name = base_name
+    log_lvl = logging.WARNING
+    if argv.debug:
+        log_lvl = logging.DEBUG
+    elif argv.verbose:
+        log_lvl = logging.INFO
+    logger = _configure_logger(q, name, log_lvl)
+    logger.log(logging.INFO, "Started work on %s" % name)
     if argv.linkage or argv.completeness:
+        logger.log(logging.DEBUG, "Creating proteome")
         if re.match("(gb.?.?)|genbank", seq_type):
+            logger.log(logging.DEBUG, "gbk-file, will attempt to extract\
+                       proteome from gbk")
             proteome = extract_gbk_trans(seqObject)
+            # if output file is found to be empty, extract contigs and translate
             if os.stat(proteome).st_size == 0:
+                logger.log(logging.DEBUG, "Failed to extract proteome from\
+                           gbk, will extract contigs and create proteome\
+                           using create_proteome()")
                 contigs = get_contigs_gbk(seqObject, name=name)
                 proteome = create_proteome(contigs, name)
         elif seq_type == "fna":
+            logger.log(logging.DEBUG, "Nucleotide fasta, will translate\
+                       using create_proteome()")
             proteome = create_proteome(seqObject, name)
         elif seq_type == "faa":
+            logger.log(logging.DEBUG, "Type is amino acid fasta already")
             proteome = seqObject
     else:
         proteome = False
@@ -87,7 +104,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
-                                debug=argv.debug)
+                                logger=logger)
         hmm_matches, _, total_hmms = comp.get_completeness()
         if argv.hlist:
             comp.print_hmm_lists(directory=argv.hlist)
@@ -97,6 +114,8 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
             frac_hmm = 0
         if frac_hmm < argv.cutoff:
             perc_hmm = frac_hmm * 100
+            logger.log(logging.WARNING, "Only %i%% of markers were found in %s,\
+                       cannot be used to calculate linkage")
             cprint("Warning:", "red", end=' ', file=sys.stderr)
             print("%i%% of markers were found in %s, cannot be used to calculate\
                    linkage" % (perc_hmm, name), file=sys.stderr)
@@ -108,9 +127,10 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
             linkage_vals[hmm].append(match)
         q.put(linkage_vals)
         return linkage_vals
-    compile_results(seq_type, name, argv, proteome, seqstats, q)
+    _compile_results(seq_type, name, argv, proteome, seqstats, q, logger)
 
-def compile_results(seq_type, name, argv, proteome, seqstats, q=None):
+def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
+                     logger=None):
     """
     Compile results from sequences passed to requested modules and pass
     to Queue for thread safe output. If no Queue given print directly to
@@ -126,7 +146,7 @@ def compile_results(seq_type, name, argv, proteome, seqstats, q=None):
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
-                                debug=argv.debug)
+                                logger=logger)
         filled_hmms, redun_hmms, total_hmms = comp.quantify_completeness()
         try:
             num_hmms = filled_hmms
@@ -166,6 +186,16 @@ def compile_results(seq_type, name, argv, proteome, seqstats, q=None):
         else:
             print('\t'.join(map(str, output)))
 
+def _configure_logger(q, name, level=logging.WARNING):
+    lq = logging.handlers.QueueHandler(q)
+    logformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    lq.setFormatter(logformatter)
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(lq)
+    #logger.log(logging.INFO, "test")
+    return logger
+
 def _listener(q):
     """
     Function responsible for outputting information in a thread safe manner.
@@ -179,7 +209,7 @@ def _listener(q):
     all_bias = defaultdict(list)
     while True:
         write_request = q.get()
-        #print(write_request)
+        cprint(write_request, "green")
         if write_request == 'done':
             break
         if isinstance(write_request, str):
@@ -191,6 +221,8 @@ def _listener(q):
             else:
                 print('\t'.join(map(str, write_request)))
             continue
+        # for testing logging
+        continue
         for hmm, match in sorted(write_request.items(), key=lambda e: e[1],
                                  reverse=True):
             {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
@@ -203,6 +235,9 @@ def _listener(q):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
         if total_fraction_bias > 0.5:
+            #logger.log(logging.WARNING, "More than 50% of found marker %s had\
+            #           more 10% of score bias. Consider not using this marker"
+            #           % hmm)
             cprint("Warning:", "red", file=sys.stderr, end=' ')
             print("More than %s%% of found markers had a higher than %s%% of" %
                   (0.5 * 100, 0.1 * 100), file=sys.stderr, end=' ')
@@ -211,7 +246,7 @@ def _listener(q):
     weights_tmp.close()
     return weights_file
 
-def weights_output(weights_file):
+def weights_output(weights_file, logger=None):
     """Creates boxplot all linkage values for each marker present in
     micomplete_weights.temp file"""
     # also output weights
@@ -247,7 +282,7 @@ def weights_output(weights_file):
     ax.set_ylabel('Markers')
     plt.show()
 
-def create_proteome(fasta, base_name=None):
+def create_proteome(fasta, base_name=None, logger=None):
     """Create proteome from given .fna file, returns proteome filename"""
     try:
         assert shutil.which('prodigal')
@@ -269,7 +304,7 @@ def create_proteome(fasta, base_name=None):
                         stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
     return prot_filename
 
-def extract_gbk_trans(gbkfile, outfile=None):
+def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     """Extract translated sequences from given GeneBank file and out to given
     filename. Returns file name of translation"""
     input_handle = open(gbkfile, mode='r')
@@ -345,7 +380,7 @@ def extract_gbk_trans(gbkfile, outfile=None):
     output_handle.close()
     return outfile
 
-def get_contigs_gbk(gbk, name=None):
+def get_contigs_gbk(gbk, name=None, logger=None):
     """Extracts all sequences from gbk file, returns filename"""
     handle = open(gbk, mode='r')
     if not name:
@@ -405,16 +440,10 @@ def main():
             type=str, help="""Log name (default=miComplete.log)""")
     parser.add_argument("-v", "--verbose", required=False, default=False,
             action='store_true', help="""Enable verbose logging""")
-    parser.add_argument("--debug", required=False, default=False, action='store_true')
+    parser.add_argument("--debug", required=False, default=False,
+                        action='store_true')
         
     args = parser.parse_args()
-    logger = logging.getLogger("miComplete")
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-    elif args.verbose:
-        logger.setLevel(logging.INFO)
-    else:
-        logger.setLevel(logging.WARNING)
 
     if args.completeness or args.linkage:
         try:
@@ -458,16 +487,14 @@ def main():
     pool = mp.Pool(processes=args.threads + 1)
     writer = pool.apply_async(_listener, (q,))
     #logfile = logging.FileHandler(args.log, mode='w+')
-    lq = logging.handlers.QueueHandler(q)
-    logformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    lq.setFormatter(logformatter)
-    logger.addHandler(lq)
-    logger.info("miComplete has started")
+    logger = _configure_logger(q, "main", "INFO")
+    logger.log(logging.INFO, "miComplete has started")
     jobs = []
     for i in input_seqs:
         if len(i) == 2:
             i.append(None)
-        job = pool.apply_async(_worker, (i[0], i[1], args, q, i[2]))
+        job = pool.apply_async(_worker, (i[0], i[1], args),
+                               {"q":q, "name":i[2]})
         jobs.append(job)
 
     # get() all processes to catch errors
