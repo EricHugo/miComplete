@@ -187,6 +187,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
         comp.print_hmm_lists(directory=argv.hlist)
     if not re.match("(gb.?.?)|genbank|faa", seq_type):
+        logger.log(logging.INFO, "Gathering assembly stats")
         N50, L50, N90, L90 = fastats.get_stats(seq_length, all_lengths)
     else:
         N50, L50, N90, L90 = '-', '-', '-', '-'
@@ -502,6 +503,7 @@ def main():
     #logfile = logging.FileHandler(args.log, mode='w+')
     logger = _configure_logger(q, "main", "INFO")
     logger.log(logging.INFO, "miComplete has started")
+    logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     jobs = []
     for i in input_seqs:
         if len(i) == 2:
@@ -513,7 +515,9 @@ def main():
     # get() all processes to catch errors
     for job in jobs:
         job.get()
+    logger.log(logging.INFO, "Finished work on all given sequences")
     q.put("done")
+    logger.log(logging.INFO, "Waiting for listener to finish and exit")
     weights_file = writer.get()
     pool.close()
     pool.join()
