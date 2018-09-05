@@ -30,9 +30,8 @@ class calcCompleteness():
         self.linkage = linkage
         self.weights = weights
         self.logger = logger
-        logger.log(logging.WARNING, "test")
         self.lenient = lenient
-        print("Starting completeness for " + fasta, file=sys.stderr)
+        self.logger.log(logging.INFO, "Starting completeness for " + fasta)
         self.hmm_names = set({})
         with open(self.hmms) as hmmfile:
             for line in hmmfile:
@@ -45,6 +44,10 @@ class calcCompleteness():
         Runs hmmsearch using the supplied .hmm file, and specified evalue.
         Produces an output table from hmmsearch, function returns its name.
         """
+        try:
+            self.logger.log(logging.INFO, "Starting hmmsearch")
+        except AttributeError:
+            pass
         hmmsearch = ["hmmsearch", self.evalue, "--tblout", self.tblout,
                      self.hmms, self.fasta]
         if sys.version_info > (3, 4):
@@ -54,9 +57,13 @@ class calcCompleteness():
             errcode = subprocess.call(hmmsearch, stdout=open(os.devnull, 'wb'),
                                       stderr=subprocess.STDOUT)
         if errcode > 0:
-            cprint("Warning:", 'red', end=' ', file=sys.stderr)
-            print("Error thrown by HMMER, is %s empty?" % self.fasta,
-                  file=sys.stderr)
+            try:
+                self.logger.log(logging.WARNING, "Error thrown by HMMER, is %s empty?"
+                            % self.fasta)
+            except AttributeError:
+                cprint("Warning:", 'red', end=' ', file=sys.stderr)
+                print("Error thrown by HMMER, is %s empty?" % self.fasta,
+                      file=sys.stderr)
         return self.tblout, errcode
 
     def get_completeness(self, multi_hit=1/2, strict=False):
@@ -76,6 +83,10 @@ class calcCompleteness():
         self.hmm_matches = defaultdict(list)
         self.seen_hmms = set()
         # gather gene name and evalue in dict by key[hmm]
+        try:
+            self.logger.log(logging.INFO, "Sorting identified HMMs and corresponding evalues")
+        except AttributeError:
+            pass
         for hmm in self.hmm_names:
             with open(self.tblout) as hmm_table:
                 for found_hmm in hmm_table:
@@ -90,12 +101,21 @@ class calcCompleteness():
                         self.seen_hmms.add(hmm)
         self.filled_hmms = defaultdict(list)
         # section can be expanded to check for unique gene matches
+        try:
+            self.logger.log(logging.INFO, "Assigning duplicates")
+        except AttributeError:
+            pass
         for hmm, gene_matches in self.hmm_matches.items():
             # sort by lowest eval to fill lowest first
             for gene in sorted(gene_matches, key=lambda ev: float(ev[1])):
                 if not self.lenient:
                     # skip if sequence match found to be dubious
                     if suspiscion_check(gene):
+                        try:
+                            self.logger.log(logging.INFO, "%s failed suspiscion check"
+                                            % gene)
+                        except AttributeError:
+                            pass
                         continue
                 if hmm not in self.filled_hmms:
                     self.filled_hmms[hmm].append(gene)
@@ -115,6 +135,10 @@ class calcCompleteness():
         """
         filled_hmms, _, hmm_names = self.get_completeness()
         try:
+            self.logger.log(logging.INFO, "Summarising completeness stats")
+        except AttributeError:
+            pass
+        try:
             num_foundhmms = len(filled_hmms)
             num_hmms = len(hmm_names)
         except TypeError:
@@ -128,6 +152,10 @@ class calcCompleteness():
 
     def print_hmm_lists(self, directory='.'):
         """Prints the contents of found, duplicate and and not found markers"""
+        try:
+            self.logger.log(logging.INFO, "Writing files of found, duplicate, and missing markers")
+        except AttributeError:
+            pass
         if directory:
             try:
                 os.mkdir(directory)
@@ -151,6 +179,10 @@ class calcCompleteness():
     def attribute_weights(self):
         """Using the markers found and duplicates from get_completeness(), and
         provided weights, adds up weight of present and duplicate markers"""
+        try:
+            self.logger.log(logging.INFO, "Attributing weights to markers")
+        except AttributeError:
+            pass
         weighted_complete = 0
         weighted_redun = 0
         for hmm in self.seen_hmms:
