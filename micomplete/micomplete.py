@@ -94,7 +94,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
     else:
         proteome = False
     logger.log(logging.INFO, "Gathering stats for sequence")
-    fastats = parseSeqStats(seqObject, name, seq_type)
+    fastats = parseSeqStats(seqObject, name, seq_type, logger=logger)
     seq_length, all_lengths, GCcontent = fastats.get_length()
     seqstats = (fastats, seq_length, all_lengths, GCcontent)
     if argv.linkage:
@@ -210,7 +210,7 @@ def _configure_logger(q, name, level=logging.WARNING):
     #logger.log(logging.INFO, "test")
     return logger
 
-def _listener(q):
+def _listener(q, linkage=False, logger=None):
     """
     Function responsible for outputting information in a thread safe manner.
     Recieves write requests from Queue and writes different targets depending
@@ -218,12 +218,13 @@ def _listener(q):
     to logfile and any calculated weights of each organism to unified
     tmp file.
     """
-    weights_file = "micomplete_weights.temp"
-    weights_tmp = open(weights_file, mode='w+')
-    all_bias = defaultdict(list)
+    logger = _configure_logger(q, "listener", "INFO")
+    if linkage:
+        weights_file = "micomplete_weights.temp"
+        weights_tmp = open(weights_file, mode='w+')
     while True:
         write_request = q.get()
-        cprint(write_request, "green")
+        #cprint(write_request, "green")
         if write_request == 'done':
             break
         if isinstance(write_request, str):
@@ -235,30 +236,45 @@ def _listener(q):
             else:
                 print('\t'.join(map(str, write_request)))
             continue
-        # for testing logging
+        if isinstance(write_request, dict):
+            _weights_writer(write_request, weights_tmp, logger)
+            continue
+        if isinstance(write_request, logging.LogRecord):
+            cprint(write_request, "green")
+            continue
         continue
-        for hmm, match in sorted(write_request.items(), key=lambda e: e[1],
-                                 reverse=True):
-            {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
-             else all_bias[hmm].append(0) for
-             stats in match[1]}
-            weight = (str(hmm) + '\t' + str(match[0]) + '\n')
-            weights_tmp.write(weight)
-        weights_tmp.write('-\n')
-        weights_tmp.flush()
+        logger.log(logging.WARNING, "Unhandled queue object at _listener")
+    try:
+        weights_tmp.close()
+    except NameError:
+        pass
+    return weights_file
+
+def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
         if total_fraction_bias > 0.5:
-            #logger.log(logging.WARNING, "More than 50% of found marker %s had\
-            #           more 10% of score bias. Consider not using this marker"
-            #           % hmm)
+            logger.log(logging.WARNING, "More than 50 of found marker %s had\
+                       more 10 of score bias. Consider not using this marker"
+                       % hmm)
             cprint("Warning:", "red", file=sys.stderr, end=' ')
             print("More than %s%% of found markers had a higher than %s%% of" %
                   (0.5 * 100, 0.1 * 100), file=sys.stderr, end=' ')
             print("score bias in marker %s. Consider not using this marker." %
                   hmm, file=sys.stderr)
-    weights_tmp.close()
-    return weights_file
+
+def _weights_writer(weights_set, tmpfile, logger=None):
+    all_bias = defaultdict(list)
+    for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
+                             reverse=True):
+        {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
+         else all_bias[hmm].append(0) for stats in match[1]}
+        weight = (str(hmm) + '\t' + str(match[0]) + '\n')
+        tmpfile.write(weight)
+    _bias_check(all_bias, logger=logger)
+    tmpfile.write('-\n')
+    tmpfile.flush()
+    return tmpfile
 
 def weights_output(weights_file, logger=None):
     """Creates boxplot all linkage values for each marker present in
@@ -499,9 +515,9 @@ def main():
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
-    writer = pool.apply_async(_listener, (q,))
     #logfile = logging.FileHandler(args.log, mode='w+')
     logger = _configure_logger(q, "main", "INFO")
+    writer = pool.apply_async(_listener, (q, args.linkage, logger))
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     jobs = []
