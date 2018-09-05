@@ -7,14 +7,14 @@ genome"""
 from __future__ import print_function, division
 from collections import defaultdict
 from itertools import chain
+import logging
 import re
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
-                 hmm_matches, debug=False, q=None):
+                 hmm_matches, debug=False, logger=None):
         self.base_name = base_name
         self.seq_object = seq_object
-        self.q = q
         self.seq_type = seq_type
         _, self.seq_length, _, _ = seqstats
         self.proteome = proteome
@@ -22,9 +22,16 @@ class linkageAnalysis():
         self.debug = debug
         self.hmm_locations = defaultdict(list)
         self.locs = defaultdict(list)
+        self.logger = logger
         if seq_type == "faa":
-            raise TypeError('Sequences for linkage analysis needs to be fna or \
-                    gbk')
+            try:
+                self.logger.log(logging.ERROR, "Sequence given for linkage '\
+                                analysis is proteome, must be nucleotide fasta '\
+                                or genbank file")
+            except AttributeError:
+                pass
+            raise TypeError('Sequences for linkage analysis needs to be fna or' \
+                            'gbk')
         with open(self.proteome) as prot_file:
             self.p_headers = set(header for header in prot_file
                                  if re.search("^>", header))
@@ -42,6 +49,10 @@ class linkageAnalysis():
         #
         ## for each matching gene get weight from self.p_headers and put into
         ## new dict in format dict[hmm] = [[START, STOP], [START, STOP], [...]]
+        try:
+            self.logger.log(logging.INFO, "Mapping locations of found markers")
+        except AttributeError:
+            pass
         for hmm, genes in self.hmm_matches.items():
             for gene in genes:
                 for loc in self.p_headers:
@@ -57,13 +68,12 @@ class linkageAnalysis():
         are compared to all other locations, lowest value is stored"""
         # for each hmm compare loc(s) to all other locs to find lowest negative
         # value, these are closest neighbours up- and downstream
-        try:
-            self.hmm_locations
-        except AttributeError:
+        if not self.hmm_locations:
             self.get_locations()
-        if self.debug:
-            #self.hmm_locations["test"].append([110, 120])
-            #self.hmm_locations["test2"].append([510, 720])
+        try:
+            self.logger.log(logging.INFO, "Finding distances between identified "\
+                            "markers")
+        except AttributeError:
             pass
         for hmm, locs in self.hmm_locations.items():
             min_floc = []
@@ -96,10 +106,13 @@ class linkageAnalysis():
     def calculate_linkage_scores(self):
         """From dict of with smallest distance locations up- and downstream
         the average is calculated, totaled and a relative value is calculated"""
-        try:
-            self.locs
-        except AttributeError:
+        if not self.locs:
             self.find_neighbour_distance()
+        try:
+            self.logger.log(logging.INFO, "Calculating relative distances "\
+                            "between found markers")
+        except AttributeError:
+            pass
         linkage_absvals = {hmm: (loc[0] + loc[1]) / 2 for (hmm, loc) in
                            self.locs.items()}
         total_distance = sum([linkVal for hmm, linkVal in
@@ -109,7 +122,4 @@ class linkageAnalysis():
         linkage_rel_vals = {hmm: [(linkVal / total_distance)]
                             for hmm, linkVal in linkage_absvals.items()}
         #print(self.linkage_rel_vals)
-        # Send results to function with lock to write to single file
-        # Once all results are there average and make boxplot
-        # Write resulting weights to .weights file
         return linkage_rel_vals
