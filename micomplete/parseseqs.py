@@ -6,19 +6,30 @@ lengths, GC-content, N50, L50, N90, L90."""
 
 from __future__ import print_function, division
 import re
+import logging
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 
 class parseSeqStats():
-    def __init__(self, seq, base_name, seq_type):
+    def __init__(self, seq, base_name, seq_type, logger=None):
         """Initialize generators for headers as well as sequence"""
+        self.logger = logger
+        try:
+            self.logger.log(logging.INFO, "Starting sequence stats gathering")
+        except AttributeError:
+            pass
         if seq_type in ('fna', 'faa'):
             self.seq_type = "fasta"
         elif re.match("(gb.?.?)|genbank", seq_type):
             self.seq_type = "genbank"
         else:
             self.seq_type = seq_type
+        try:
+            self.logger.log(logging.INFO, "Sequence type given as: " +
+                            self.seq_type)
+        except AttributeError:
+            pass
         self.seq_headers = [seqi.id for seqi in SeqIO.parse(seq, self.seq_type)]
         self.seq_fasta = [seqi.seq for seqi in SeqIO.parse(seq, self.seq_type)]
         self.base_name = base_name
@@ -49,11 +60,19 @@ class parseSeqStats():
         lengths, and overall GC content"""
         all_lengths, total_fasta = [], []
         for fasta in self.seq_fasta:
+            try:
+                self.logger.log(logging.INFO, "Gathering sequence length")
+            except AttributeError:
+                pass
             all_lengths.append(len(fasta))
             total_fasta.append(str(fasta))
         if self.seq_type == "faa":
             gc_content = 0.0
         else:
+            try:
+                self.logger.log(logging.INFO, "Calculating GC-content of given sequence")
+            except AttributeError:
+                pass
             # implement memory-efficient method here
             gc_content = round(GC(''.join(str(total_fasta))), 2)
         seq_length = sum(all_lengths)
