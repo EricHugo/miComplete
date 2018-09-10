@@ -59,11 +59,11 @@ class parseSeqStats():
         """Returns complete sequence length, all individual contig
         lengths, and overall GC content"""
         all_lengths, total_fasta = [], []
+        try:
+            self.logger.log(logging.INFO, "Gathering sequence length")
+        except AttributeError:
+            pass
         for fasta in self.seq_fasta:
-            try:
-                self.logger.log(logging.INFO, "Gathering sequence length")
-            except AttributeError:
-                pass
             all_lengths.append(len(fasta))
             total_fasta.append(str(fasta))
         if self.seq_type == "faa":
