@@ -42,6 +42,7 @@ import threading
 import multiprocessing as mp
 import numpy as np
 import matplotlib.pyplot as plt
+from contextlib import contextmanager
 try:
     from statistics import median
 except ImportError:
@@ -74,19 +75,19 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
     if argv.linkage or argv.completeness:
         logger.log(logging.INFO, "Creating proteome")
         if re.match("(gb.?.?)|genbank", seq_type):
-            logger.log(logging.INFO, "gbk-file, will attempt to extract\
-                       proteome from gbk")
+            logger.log(logging.INFO, "gbk-file, will attempt to extract"\
+                       "proteome from gbk")
             proteome = extract_gbk_trans(seqObject)
             # if output file is found to be empty, extract contigs and translate
             if os.stat(proteome).st_size == 0:
-                logger.log(logging.INFO, "Failed to extract proteome from\
-                           gbk, will extract contigs and create proteome\
-                           using create_proteome()")
+                logger.log(logging.INFO, "Failed to extract proteome from"\
+                           "gbk, will extract contigs and create proteome"\
+                           "using create_proteome()")
                 contigs = get_contigs_gbk(seqObject, name=name)
                 proteome = create_proteome(contigs, name)
         elif seq_type == "fna":
-            logger.log(logging.INFO, "Nucleotide fasta, will translate\
-                       using create_proteome()")
+            logger.log(logging.INFO, "Nucleotide fasta, will translate"\
+                       "using create_proteome()")
             proteome = create_proteome(seqObject, name)
         elif seq_type == "faa":
             logger.log(logging.INFO, "Type is amino acid fasta already")
@@ -101,8 +102,8 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         try:
             assert argv.hmms
         except (AssertionError, NameError):
-            logger.log(logging.ERROR, "No HMMs were provided, but a linkage\
-                       calculation was requested.")
+            logger.log(logging.ERROR, "No HMMs were provided, but a linkage"\
+                       "calculation was requested.")
             raise NameError("A set of HMMs must be provided to calculate linkage")
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
@@ -111,8 +112,8 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
                                 logger=logger)
         hmm_matches, _, total_hmms = comp.get_completeness()
         if argv.hlist:
-            logger.log(logging.INFO, "Writing found/missing/duplicated marker\
-                       lists")
+            logger.log(logging.INFO, "Writing found/missing/duplicated marker"\
+                       "lists")
             comp.print_hmm_lists(directory=argv.hlist)
         try:
             frac_hmm = len(hmm_matches) / len(total_hmms)
@@ -121,14 +122,17 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         logger.log(logging.INFO, "Checking fraction of markers found in sequence")
         if frac_hmm < argv.cutoff:
             perc_hmm = frac_hmm * 100
-            logger.log(logging.WARNING, "Only %i%% of markers were found in %s,\
-                       will not be used to calculate linkage")
-            cprint("Warning:", "red", end=' ', file=sys.stderr)
-            print("%i%% of markers were found in %s, cannot be used to calculate\
-                   linkage" % (perc_hmm, name), file=sys.stderr)
+            try:
+                logger.log(logging.WARNING, "Only %i%% of markers were found in"\
+                           "%s will not be used to calculate linkage"
+                           % (perc_hmm, name))
+            except AttributeError:
+                cprint("Warning:", "red", end=' ', file=sys.stderr)
+                print("%i%% of markers were found in %s, cannot be used to"\
+                        "calculate linkage" % (perc_hmm, name), file=sys.stderr)
             return
-        logger.log(logging.INFO, "Starting linkage calculations of markers in\
-                   sequence")
+        logger.log(logging.INFO, "Starting linkage calculations of markers in"\
+                   "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
                                   hmm_matches, argv.debug, q)
         linkage_vals = linkage.calculate_linkage_scores()
@@ -210,7 +214,7 @@ def _configure_logger(q, name, level=logging.WARNING):
     #logger.log(logging.INFO, "test")
     return logger
 
-def _listener(q, linkage=False, logger=None):
+def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log"):
     """
     Function responsible for outputting information in a thread safe manner.
     Recieves write requests from Queue and writes different targets depending
@@ -222,58 +226,89 @@ def _listener(q, linkage=False, logger=None):
     if linkage:
         weights_file = "micomplete_weights.temp"
         weights_tmp = open(weights_file, mode='w+')
-    while True:
-        write_request = q.get()
-        #cprint(write_request, "green")
-        if write_request == 'done':
-            break
-        if isinstance(write_request, str):
-            #logger.handle(write_request)
+        m = _weights_writer()
+        next(m)
+    with _dynamic_open(out) as handle:
+        while True:
+            write_request = q.get()
+            #cprint(write_request, "green")
+            if write_request == 'done':
+                break
+            if isinstance(write_request, list):
+                if sys.version_info > (3, 0):
+                    for request in write_request:
+                        handle.write(str(request) + '\t')
+                    handle.write('\n')
+                continue
+            if isinstance(write_request, dict):
+                callback = m.send((write_request, weights_tmp))
+                continue
+            if isinstance(write_request, logging.LogRecord):
+                cprint(write_request, "green")
+                continue
+            logger.log(logging.WARNING, "Unhandled queue object at _listener: "
+                       + handle)
             continue
-        if isinstance(write_request, list):
-            if sys.version_info > (3, 0):
-                print(*write_request, sep='\t')
-            else:
-                print('\t'.join(map(str, write_request)))
-            continue
-        if isinstance(write_request, dict):
-            _weights_writer(write_request, weights_tmp, logger)
-            continue
-        if isinstance(write_request, logging.LogRecord):
-            cprint(write_request, "green")
-            continue
-        continue
-        logger.log(logging.WARNING, "Unhandled queue object at _listener")
     try:
+        m.send(("break", None))
         weights_tmp.close()
     except NameError:
         pass
     return weights_file
 
+@contextmanager
+def _dynamic_open(outfile='-'):
+    """Dynamically opens file or stdout depending on argument.
+
+    Usage:
+        with dynamic_open(outfile) as handle:
+            ##
+    """
+    if outfile and outfile != '-':  
+        handle = open(outfile, 'w')     
+    else:
+        handle = sys.stdout
+    # close and flush open file if not stdout
+    try:
+        yield handle
+    finally:
+        if handle is not sys.stdout:    
+            handle.close()
+
 def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
         if total_fraction_bias > 0.5:
-            logger.log(logging.WARNING, "More than 50 of found marker %s had\
-                       more 10 of score bias. Consider not using this marker"
-                       % hmm)
-            cprint("Warning:", "red", file=sys.stderr, end=' ')
-            print("More than %s%% of found markers had a higher than %s%% of" %
-                  (0.5 * 100, 0.1 * 100), file=sys.stderr, end=' ')
-            print("score bias in marker %s. Consider not using this marker." %
-                  hmm, file=sys.stderr)
+            try:
+                logger.log(logging.WARNING, "More than 50 of found marker %s had "\
+                           "more 10 of score bias. Consider not using this marker"
+                           % hmm)
+            except AttributeError:
+                cprint("Warning:", "red", file=sys.stderr, end=' ')
+                print("More than %s%% of found markers had a higher than %s%% of" %
+                      (0.5 * 100, 0.1 * 100), file=sys.stderr, end=' ')
+                print("score bias in marker %s. Consider not using this marker." %
+                      hmm, file=sys.stderr)
 
-def _weights_writer(weights_set, tmpfile, logger=None):
+def _weights_writer(logger=None):
+    """Listens to main _listener process for sets of hmm weights. Once all
+    sets have been received and _listener has exited, runs bias check"""
     all_bias = defaultdict(list)
-    for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
-                             reverse=True):
-        {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
-         else all_bias[hmm].append(0) for stats in match[1]}
-        weight = (str(hmm) + '\t' + str(match[0]) + '\n')
-        tmpfile.write(weight)
-    _bias_check(all_bias, logger=logger)
-    tmpfile.write('-\n')
-    tmpfile.flush()
+    while True:
+        weights_set, tmpfile = yield
+        if weights_set == "break":
+            print("bias")
+            _bias_check(all_bias, logger=logger)
+            continue
+        for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
+                                 reverse=True):
+            print(match)
+            {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
+             else all_bias[hmm].append(0) for stats in match[1]}
+            weight = (str(hmm) + '\t' + str(match[0]) + '\n')
+            tmpfile.write(weight)
+        tmpfile.write('-\n')
+        tmpfile.flush()
     return tmpfile
 
 def weights_output(weights_file, logger=None):
@@ -472,6 +507,9 @@ def main():
             action='store_true', help="""Enable verbose logging""")
     parser.add_argument("--debug", required=False, default=False,
                         action='store_true')
+    parser.add_argument("-o", "--outfile", default=None, help="Outfile "\
+                        "can be specified. None or \"-\" will result in "\
+                        "printing to stdout")
         
     args = parser.parse_args()
 
@@ -517,7 +555,7 @@ def main():
     pool = mp.Pool(processes=args.threads + 1)
     #logfile = logging.FileHandler(args.log, mode='w+')
     logger = _configure_logger(q, "main", "INFO")
-    writer = pool.apply_async(_listener, (q, args.linkage, logger))
+    writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger))
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     jobs = []
