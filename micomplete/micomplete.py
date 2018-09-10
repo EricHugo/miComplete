@@ -223,6 +223,8 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
     tmp file.
     """
     logger = _configure_logger(q, "listener", "INFO")
+    if logfile:
+        logtarget = open(logfile, 'w')
     if linkage:
         weights_file = "micomplete_weights.temp"
         weights_tmp = open(weights_file, mode='w+')
@@ -244,11 +246,16 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
                 callback = m.send((write_request, weights_tmp))
                 continue
             if isinstance(write_request, logging.LogRecord):
-                cprint(write_request, "green")
+                cprint(write_request.getMessage(), "green")
+                logtarget.write(write_request.getMessage() + '\n')
                 continue
             logger.log(logging.WARNING, "Unhandled queue object at _listener: "
                        + handle)
             continue
+    try:
+        logtarget.close()
+    except AttributeError:
+        pass
     try:
         m.send(("break", None))
         weights_tmp.close()
@@ -555,7 +562,8 @@ def main():
     pool = mp.Pool(processes=args.threads + 1)
     #logfile = logging.FileHandler(args.log, mode='w+')
     logger = _configure_logger(q, "main", "INFO")
-    writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger))
+    writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger,
+                                          args.log))
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     jobs = []
