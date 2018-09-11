@@ -246,7 +246,6 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
                 callback = m.send((write_request, weights_tmp))
                 continue
             if isinstance(write_request, logging.LogRecord):
-                cprint(write_request.getMessage(), "green")
                 logtarget.write(write_request.getMessage() + '\n')
                 continue
             logger.log(logging.WARNING, "Unhandled queue object at _listener: "
@@ -260,7 +259,7 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
         m.send(("break", None))
         weights_tmp.close()
     except NameError:
-        pass
+        return
     return weights_file
 
 @contextmanager
@@ -271,15 +270,15 @@ def _dynamic_open(outfile='-'):
         with dynamic_open(outfile) as handle:
             ##
     """
-    if outfile and outfile != '-':  
-        handle = open(outfile, 'w')     
+    if outfile and outfile != '-':
+        handle = open(outfile, 'w')
     else:
         handle = sys.stdout
     # close and flush open file if not stdout
     try:
         yield handle
     finally:
-        if handle is not sys.stdout:    
+        if handle is not sys.stdout:
             handle.close()
 
 def _bias_check(all_bias, logger=None):
@@ -298,18 +297,17 @@ def _bias_check(all_bias, logger=None):
                       hmm, file=sys.stderr)
 
 def _weights_writer(logger=None):
-    """Listens to main _listener process for sets of hmm weights. Once all
+    """Coroutine to main _listener process for sets of hmm weights. Once all
     sets have been received and _listener has exited, runs bias check"""
     all_bias = defaultdict(list)
     while True:
         weights_set, tmpfile = yield
         if weights_set == "break":
-            print("bias")
             _bias_check(all_bias, logger=logger)
             continue
         for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
                                  reverse=True):
-            print(match)
+            #print(match)
             {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
              else all_bias[hmm].append(0) for stats in match[1]}
             weight = (str(hmm) + '\t' + str(match[0]) + '\n')
@@ -535,11 +533,6 @@ def main():
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
     
-    if sys.version_info > (3, 0):
-        print(*input_seqs, sep='\n', file=sys.stderr)
-    else:
-        for each_input in input_seqs: print(each_input, file=sys.stderr)
-
     ## print out column headers, unless linkage is requested
     if args.completeness and not args.linkage:
         if not args.hmms:
@@ -561,11 +554,14 @@ def main():
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
     #logfile = logging.FileHandler(args.log, mode='w+')
-    logger = _configure_logger(q, "main", "INFO")
+    logger = _configure_logger(q, "main", "DEBUG")
     writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger,
                                           args.log))
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
+    logger.log(logging.DEBUG, "List of given sequences:")
+    for seq in input_seqs:
+        logger.log(logging.DEBUG, seq[0])
     jobs = []
     for i in input_seqs:
         if len(i) == 2:
