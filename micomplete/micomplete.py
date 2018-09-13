@@ -60,6 +60,20 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
+HEADERS = {"Name": None,
+           "Length": None,
+           "GC-content": None,
+           "Present Markers": None,
+           "Completeness": None,
+           "Redundance": None,
+           "Weighted completeness": None,
+           "Weighted redudndance": None,
+           "N50": None,
+           "L50": None,
+           "N90": None,
+           "L90": None
+           }
+
 def _worker(seqObject, seq_type, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
     base_name = os.path.basename(seqObject).split('.')[0]
@@ -150,12 +164,14 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     stdout.
     """
     output = []
+    headers = HEADERS
+    headers['Name'] = name
     if not seq_type == 'faa':
         logger.log(logging.INFO, "Gathering nucleotide sequence stats")
-        fastats, seq_length, all_lengths, GC = seqstats
+        fastats, headers['Length'], all_lengths, headers['GC-content'] = seqstats
     else:
-        fastats, seq_length, all_lengths, GC = "-", "-", "-", "-"
-    output.extend((name, seq_length, GC))
+        fastats, headers['Length'], all_lengths, headers['GC-content'] = "-", "-", "-", "-"
+    #output.extend((name, seq_length, GC))
     if argv.completeness:
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
@@ -164,43 +180,44 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
                                 logger=logger)
         filled_hmms, redun_hmms, total_hmms = comp.quantify_completeness()
         try:
-            num_hmms = filled_hmms
+            headers['Present Markers'] = filled_hmms
         except TypeError:
-            num_hmms = 0
-        output.append(num_hmms)
+            headers['Present Markers'] = 0
+        output.append(headers['Present Markers'])
         try:
-            marker_comp = '%0.3f' % (round(num_hmms / total_hmms, 3))
+            headers['Completeness'] = '%0.3f' % (round(headers['Present Markers'] / total_hmms, 3))
         except ZeroDivisionError:
-            marker_comp = 0
-        output.append(marker_comp)
+            headers['Completeness'] = 0
+        output.append(headers['Completeness'])
         try:
-            redundance = '%0.3f' % (round((redun_hmms) / num_hmms, 3))
+            headers['Redundance'] = '%0.3f' % (round((redun_hmms) / headers['Present Markers'], 3))
         except ZeroDivisionError:
-            redundance = 0
-        output.append(redundance)
+            headers['Redundance'] = 0
+        output.append(headers['Redundance'])
         if argv.weights:
             logger.log(logging.INFO, "Gathering weighted completeness scores")
-            if num_hmms > 0:
-                weighted_comp, weighted_redun = comp.attribute_weights(num_hmms)
+            if headers['Present Markers'] > 0:
+                headers['Weighted completeness'], headers['Weighted redudndance'] = comp.attribute_weights()
             else:
-                weighted_comp, weighted_redun = 0, 0
-            output.append('%0.3f' % weighted_comp)
-            output.append('%0.3f' % weighted_redun)
+                headers['Weighted completeness'], headers['Weighted redudndance'] = 0, 0
+            output.append('%0.3f' % headers['Weighted completeness'])
+            output.append('%0.3f' % headers['Weighted redudndance'])
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
         comp.print_hmm_lists(directory=argv.hlist)
     if not re.match("(gb.?.?)|genbank|faa", seq_type):
         logger.log(logging.INFO, "Gathering assembly stats")
-        N50, L50, N90, L90 = fastats.get_stats(seq_length, all_lengths)
+        headers['N50'], headers['L50'], headers['N90'], headers['L90'] = fastats.get_stats(headers['Length'], all_lengths)
     else:
-        N50, L50, N90, L90 = '-', '-', '-', '-'
-    output.extend((N50, L50, N90, L90))
+        headers['N50'], headers['L50'], headers['N90'], headers['L90'] = '-', '-', '-', '-'
+    output.extend((headers['N50'], headers['L50'], headers['N90'], headers['L90']))
+    headers = {header: value for header, value in headers.items() if value}
     if q:
-        q.put(output)
+        q.put(headers)
     else:
         if sys.version_info > (3, 0):
-            print(*output, sep='\t')
+            print(*headers.values(), sep='\t')
         else:
             print('\t'.join(map(str, output)))
 
@@ -222,6 +239,7 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
     to logfile and any calculated weights of each organism to unified
     tmp file.
     """
+    first_result = True
     logger = _configure_logger(q, "listener", "INFO")
     if logfile:
         logtarget = open(logfile, 'w')
@@ -236,14 +254,19 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
             #cprint(write_request, "green")
             if write_request == 'done':
                 break
-            if isinstance(write_request, list):
-                if sys.version_info > (3, 0):
-                    for request in write_request:
-                        handle.write(str(request) + '\t')
-                    handle.write('\n')
+            if isinstance(write_request, dict) and linkage:
+                callback = m.send((write_request, weights_tmp))
                 continue
             if isinstance(write_request, dict):
-                callback = m.send((write_request, weights_tmp))
+                if first_result:
+                    for header in write_request.keys():
+                        handle.write(str(header) + '\t')
+                    handle.write('\n')
+                    first_result = False
+                if sys.version_info > (3, 0):
+                    for request in write_request.values():
+                        handle.write(str(request) + '\t')
+                    handle.write('\n')
                 continue
             if isinstance(write_request, logging.LogRecord):
                 logtarget.write(write_request.getMessage() + '\n')
@@ -533,27 +556,12 @@ def main():
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
     
-    ## print out column headers, unless linkage is requested
-    if args.completeness and not args.linkage:
-        if not args.hmms:
-            raise TypeError("""Completeness check requires a set of HMMs to
-            look for.""")
-        if args.weights:
-            print("Name\tLength\tGC-content\tPresent Markers\tCompleteness"
-                  "\tRedundance\tCompletenessW\tRedudanceW\tN50\tL50\tN90\tL90")
-        else:
-            print("Name\tLength\tGC-content\tPresent Markers\tCompleteness"
-                  "\tRedundance\tN50\tL50\tN90\tL90")
-    elif not args.linkage:
-        print("Name\tLength\tGC-content\tN50\tL50\tN90\tL90")
-
     if mp.cpu_count() < args.threads:
         raise RuntimeError('Specified number of threads are larger than the '
                            'number detected in the system: ' + mp.cpu_count())
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
-    #logfile = logging.FileHandler(args.log, mode='w+')
     logger = _configure_logger(q, "main", "DEBUG")
     writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger,
                                           args.log))
