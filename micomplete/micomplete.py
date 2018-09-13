@@ -216,10 +216,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     if q:
         q.put(headers)
     else:
-        if sys.version_info > (3, 0):
-            print(*headers.values(), sep='\t')
-        else:
-            print('\t'.join(map(str, output)))
+        print(*headers.values(), sep='\t')
 
 def _configure_logger(q, name, level=logging.WARNING):
     lq = logging.handlers.QueueHandler(q)
@@ -263,10 +260,9 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
                         handle.write(str(header) + '\t')
                     handle.write('\n')
                     first_result = False
-                if sys.version_info > (3, 0):
-                    for request in write_request.values():
-                        handle.write(str(request) + '\t')
-                    handle.write('\n')
+                for request in write_request.values():
+                    handle.write(str(request) + '\t')
+                handle.write('\n')
                 continue
             if isinstance(write_request, logging.LogRecord):
                 logtarget.write(write_request.getMessage() + '\n')
