@@ -469,7 +469,7 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     output_handle.close()
     return outfile
 
-def get_contigs_gbk(gbk, name=None, logger=None):
+def get_contigs_gbk(gbk, name=None):
     """Extracts all sequences from gbk file, returns filename"""
     handle = open(gbk, mode='r')
     if not name:
@@ -482,6 +482,8 @@ def get_contigs_gbk(gbk, name=None, logger=None):
     return name
 
 def main():
+    if sys.version_info < (3, 4):
+       raise Exception("miComplete does not support python version below 3.4")
     parser = argparse.ArgumentParser(
         description="""
             Quality control of metagenome assembled genomes. Able to gather
@@ -493,34 +495,34 @@ def main():
                 https://bitbucket.org/evolegiolab/micomplete or directly to 
                 eric@hugoson.org""")
 
-    parser.add_argument("sequence", help="""Sequence(s) along with type (fna, 
+    parser.add_argument("sequence", help="""Sequence(s) along with type (fna,
             faa, gbk) provided in a tabular format""")
     parser.add_argument("-t", "--total", required=False, default=False,
             action='store_true', help="""Print total (not implemented)""")
     parser.add_argument("-c", "--completeness", required=False, default=False,
             action='store_true', help="""Perform completeness check (also requires
-            a set of HMMs to have been provided""") 
+            a set of HMMs to have been provided""")
     parser.add_argument("--lenient", action='store_true', default=False,
-            help="""By default miComplete drops hits with too high bias 
+            help="""By default miComplete drops hits with too high bias
             or too low best domain score. This argument disables that behavior, 
             permitting any hit that meets the evalue requirements.""")
     parser.add_argument("--hlist", required=False, default=None, type=str,
             nargs='?', help="""Write list of Present, Absent and
             Duplicated markers for each organism to file""")
     parser.add_argument("--hmms", required=False, default=False,
-            help="""Specifies a set of HMMs to be used for completeness check 
+            help="""Specifies a set of HMMs to be used for completeness check
             or linkage analysis""")
     parser.add_argument("--weights", required=False, default=False,
             help="""Specify a set of weights for the HMMs specified,
             (optional)""")
-    parser.add_argument("--linkage", required=False, default=False, 
-            action='store_true', help="""Specifies that the provided sequences 
+    parser.add_argument("--linkage", required=False, default=False,
+            action='store_true', help="""Specifies that the provided sequences
             should be used to calculate the weights of the provided HMMs""")
     parser.add_argument("--evalue", required=False, type=float, default=1e-10,
-            help="""Specify e-value cutoff to be used for completeness check. 
+            help="""Specify e-value cutoff to be used for completeness check.
             Default = 1e-10""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
-            help="""Specify cutoff percentage of markers required to be present 
+            help="""Specify cutoff percentage of markers required to be present
             in genome for it be included in linkage calculation. 
             Default = 0.9""")
     parser.add_argument("--threads", required=False, default=1, type=int,
@@ -534,7 +536,6 @@ def main():
     parser.add_argument("-o", "--outfile", default=None, help="Outfile "\
                         "can be specified. None or \"-\" will result in "\
                         "printing to stdout")
-        
     args = parser.parse_args()
 
     if args.completeness or args.linkage:
@@ -576,7 +577,19 @@ def main():
 
     # get() all processes to catch errors
     for job in jobs:
-        job.get()
+        try:
+            job.get()
+        except Exception as e:
+            # since Queue dies with manager, set up new logger here to 
+            # catch exceptions
+            logger = logging.getLogger("main")
+            handler = logging.FileHandler(args.log)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.log(logging.ERROR, "Error encountered in main. Exiting.", 
+                       exc_info=True)
+            raise e
     logger.log(logging.INFO, "Finished work on all given sequences")
     q.put("done")
     logger.log(logging.INFO, "Waiting for listener to finish and exit")
