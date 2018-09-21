@@ -66,7 +66,7 @@ class calcCompleteness():
                       file=sys.stderr)
         return self.tblout, errcode
 
-    def get_completeness(self, multi_hit=1/2, strict=False):
+    def get_completeness(self, multi_hit=1/2):
         """
         Reads the out table of hmmer to find which hmms are present, and
         which are duplicated. Duplicates are only considered duplicates if
@@ -84,7 +84,8 @@ class calcCompleteness():
         self.seen_hmms = set()
         # gather gene name and evalue in dict by key[hmm]
         try:
-            self.logger.log(logging.INFO, "Sorting identified HMMs and corresponding evalues")
+            self.logger.log(logging.INFO, "Parsing identified HMMs and "\
+                            "corresponding evalues")
         except AttributeError:
             pass
         for hmm in self.hmm_names:
@@ -117,10 +118,10 @@ class calcCompleteness():
                         except AttributeError:
                             pass
                         continue
-                if hmm not in self.filled_hmms:
-                    self.filled_hmms[hmm].append(gene)
-                elif float(gene[1]) < pow(float(self.filled_hmms[hmm][0][1]), 1/2):
-                    self.filled_hmms[hmm].append(gene)
+                #if hmm not in self.filled_hmms:
+                self.filled_hmms[hmm].append(gene)
+                #elif float(gene[1]) < pow(float(self.filled_hmms[hmm][0][1]), multi_hit):
+                #    self.filled_hmms[hmm].append(gene)
         self.dup_hmms = [hmm for hmm, genes in self.filled_hmms.items()
                          if len(genes) > 1]
         #if self.hlist and not self.linkage:
@@ -206,6 +207,6 @@ def suspiscion_check(gene_match):
     a dubious result."""
     if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
             float(gene_match[4]) > 0.01:
-        cprint(gene_match, "magenta", file=sys.stderr)
+        #cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False
