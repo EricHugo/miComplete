@@ -102,16 +102,12 @@ class calcCompleteness():
                         self.seen_hmms.add(hmm)
         self.filled_hmms = defaultdict(list)
         # section can be expanded to check for unique gene matches
-        try:
-            self.logger.log(logging.INFO, "Assigning duplicates")
-        except AttributeError:
-            pass
         for hmm, gene_matches in self.hmm_matches.items():
             # sort by lowest eval to fill lowest first
             for gene in sorted(gene_matches, key=lambda ev: float(ev[1])):
                 if not self.lenient:
                     # skip if sequence match found to be dubious
-                    if suspiscion_check(gene):
+                    if suspicion_check(gene):
                         try:
                             self.logger.log(logging.INFO, "%s failed suspiscion check"
                                             % gene)
@@ -122,6 +118,10 @@ class calcCompleteness():
                 self.filled_hmms[hmm].append(gene)
                 #elif float(gene[1]) < pow(float(self.filled_hmms[hmm][0][1]), multi_hit):
                 #    self.filled_hmms[hmm].append(gene)
+        try:
+            self.logger.log(logging.INFO, "Assigning duplicates")
+        except AttributeError:
+            pass
         self.dup_hmms = [hmm for hmm, genes in self.filled_hmms.items()
                          if len(genes) > 1]
         #if self.hlist and not self.linkage:
@@ -201,7 +201,7 @@ class calcCompleteness():
         weighted_complete = round(weighted_complete, 3)
         return weighted_complete, weighted_redun
 
-def suspiscion_check(gene_match):
+def suspicion_check(gene_match):
     """Check if bias is in the same order of magnitude as the match
     and if the evalue for the best domain is high. Both indicating
     a dubious result."""
