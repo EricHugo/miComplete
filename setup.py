@@ -4,7 +4,7 @@ with open('README.rst', mode='r') as f:
     l_description = f.read()
 
 setup(name='micomplete',
-        version='0.2',
+        version='0.3.0',
         description='Quality control of assembled genomes',
         long_description=l_description,
         url='https://bitbucket.org/evolegiolab/micomplete',
@@ -18,12 +18,9 @@ setup(name='micomplete',
             'Topic :: Scientific/Engineering :: Bio-Informatics',
             'Environment :: Console',
             'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-            'Programming Language :: Python :: 2',
-            'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.4',
-            'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
         ],
         keywords='bioinformatics completeness metagenomics',
         install_requires=[

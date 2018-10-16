@@ -1,57 +1,79 @@
 # Copyright (c) Eric Hugoson.
 # See LICENSE for details.
 
+"""Gathers sequence relevant basic sequence data: length, contig
+lengths, GC-content, N50, L50, N90, L90."""
 
 from __future__ import print_function, division
 import re
+import logging
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 
 class parseSeqStats():
-    def __init__(self, seq, baseName, seqType):
+    def __init__(self, seq, base_name, seq_type, logger=None):
         """Initialize generators for headers as well as sequence"""
-        if seqType == "fna" or seqType == "faa":
-            self.seqType = "fasta"
-        elif re.match("(gb.?.?)|genbank", seqType):
-            self.seqType = "genbank"
+        self.logger = logger
+        try:
+            self.logger.log(logging.INFO, "Starting sequence stats gathering")
+        except AttributeError:
+            pass
+        if seq_type in ('fna', 'faa'):
+            self.seq_type = "fasta"
+        elif re.match("(gb.?.?)|genbank", seq_type):
+            self.seq_type = "genbank"
         else:
-            self.seqType = seqType
-        self.seqHeaders = [seqi.id for seqi in SeqIO.parse(seq, self.seqType)]
-        self.seqFasta = [seqi.seq for seqi in SeqIO.parse(seq, self.seqType)]
-        self.baseName = baseName
+            self.seq_type = seq_type
+        try:
+            self.logger.log(logging.INFO, "Sequence type given as: " +
+                            self.seq_type)
+        except AttributeError:
+            pass
+        self.seq_headers = [seqi.id for seqi in SeqIO.parse(seq, self.seq_type)]
+        self.seq_fasta = [seqi.seq for seqi in SeqIO.parse(seq, self.seq_type)]
+        self.base_name = base_name
         self.sequence = seq
 
-    def get_stats(self, totalLength, allLengths):
+    def get_stats(self, total_length, all_lengths):
         """Finds assembly stats if applicable"""
         length = []
-        N50, N90 = "", ""
-        for contig in sorted(allLengths, reverse=True):
+        n50, n90 = "", ""
+        for contig in sorted(all_lengths, reverse=True):
             length.append(contig)
-            if sum(length) >= totalLength * 0.9:
-                N90 = contig
-                L90 = len(length)
-                if N50:
+            if sum(length) >= total_length * 0.9:
+                n90 = contig
+                l90 = len(length)
+                if n50:
                     break
-            if sum(length) >= totalLength / 2:
-                if N50:
+            if sum(length) >= total_length / 2:
+                if n50:
                     continue
-                N50 = contig
-                L50 = len(length)
-                if N90:
+                n50 = contig
+                l50 = len(length)
+                if n90:
                     break
-        return N50, L50, N90, L90
+        return n50, l50, n90, l90
 
     def get_length(self):
-        allLengths, totalFasta = [], []
-        for fasta in self.seqFasta:
-            allLengths.append(len(fasta))
-            totalFasta.append(str(fasta))
-        if self.seqType == "faa":
-            GCcontent = 0.0
+        """Returns complete sequence length, all individual contig
+        lengths, and overall GC content"""
+        all_lengths, total_fasta = [], []
+        try:
+            self.logger.log(logging.INFO, "Gathering sequence length")
+        except AttributeError:
+            pass
+        for fasta in self.seq_fasta:
+            all_lengths.append(len(fasta))
+            total_fasta.append(str(fasta))
+        if self.seq_type == "faa":
+            gc_content = 0.0
         else:
+            try:
+                self.logger.log(logging.INFO, "Calculating GC-content of given sequence")
+            except AttributeError:
+                pass
             # implement memory-efficient method here
-            GCcontent = round(GC(''.join(str(totalFasta))), 2)
-        seqLength = sum(allLengths)
-        return seqLength, allLengths, GCcontent
-
+            gc_content = round(GC(''.join(str(total_fasta))), 2)
+        seq_length = sum(all_lengths)
+        return seq_length, all_lengths, gc_content

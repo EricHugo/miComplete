@@ -45,7 +45,7 @@ weights for all markers is produced.
 
 Dependencies
 --------------
-Python (>=2.7 / >=3.4)
+Python (>=3.5)
 
 
 External software
