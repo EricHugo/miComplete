@@ -25,5 +25,7 @@ while read -r fa; do
 	extension=$(echo $fa | rev | cut -d "." -f "1" | rev)
 	if [[ $(elementIn "$extension" "${validext[@]}") ]]; then
 		printf "$(readlink -e $fa)\t$extension\n"
+	else
+		>&2 echo "$(basename $fa) does not have the correct extension. Excluded."
 	fi
 done < "${1:-/dev/stdin}"
