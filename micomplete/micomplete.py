@@ -419,7 +419,10 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
                     try:
                         header = ">" + feature.qualifiers['gene'][0]
                     except KeyError:
-                        continue
+                        try:
+                            header = ">" + feature.qualifiers['protein_id'][0]
+                        except KeyError:
+                            continue
                 # some CDS do not have translations, retrieve nucleotide sequence
                 # and translate
                 try:
