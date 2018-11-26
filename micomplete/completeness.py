@@ -207,6 +207,6 @@ def suspicion_check(gene_match):
     a dubious result."""
     if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
             float(gene_match[4]) > 0.01:
-        #cprint(gene_match, "magenta", file=sys.stderr)
+        cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False

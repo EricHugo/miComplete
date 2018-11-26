@@ -416,7 +416,10 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
                 try:
                     header = ">" + feature.qualifiers['locus_tag'][0]
                 except KeyError:
-                    continue
+                    try:
+                        header = ">" + feature.qualifiers['gene'][0]
+                    except KeyError:
+                        continue
                 # some CDS do not have translations, retrieve nucleotide sequence
                 # and translate
                 try:
@@ -554,7 +557,7 @@ def main():
                       if not re.match('#|\n', seq)]
     
     if mp.cpu_count() < args.threads:
-        raise RuntimeError('Specified number of threads are larger than the '
+        raise RuntimeError('Specified number of threads are larger than the '\
                            'number detected in the system: ' + mp.cpu_count())
     manager = mp.Manager()
     q = manager.Queue()
