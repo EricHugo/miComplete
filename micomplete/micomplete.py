@@ -561,7 +561,8 @@ def main():
     
     if mp.cpu_count() < args.threads:
         raise RuntimeError('Specified number of threads are larger than the '\
-                           'number detected in the system: ' + mp.cpu_count())
+                           'number detected in the system: '\
+                           + str(mp.cpu_count()))
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
