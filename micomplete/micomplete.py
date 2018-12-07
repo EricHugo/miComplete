@@ -567,8 +567,8 @@ def main():
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
     logger = _configure_logger(q, "main", "DEBUG")
-    writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger,
-                                          args.log))
+    writer = pool.apply_async(_listener, (q, args.outfile),
+                              {"linkage":args.linkage, "logfile":args.log})
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     logger.log(logging.DEBUG, "List of given sequences:")
@@ -587,14 +587,14 @@ def main():
         try:
             job.get()
         except Exception as e:
-            # since Queue dies with manager, set up new logger here to 
+            # since Queue dies with manager, set up new logger here to
             # catch exceptions
             logger = logging.getLogger("main")
             handler = logging.FileHandler(args.log)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-            logger.log(logging.ERROR, "Error encountered in main. Exiting.", 
+            logger.log(logging.ERROR, "Error encountered in main. Exiting.",
                        exc_info=True)
             raise e
     logger.log(logging.INFO, "Finished work on all given sequences")
