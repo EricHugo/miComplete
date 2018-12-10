@@ -20,8 +20,9 @@ from termcolor import cprint
 
 
 class calcCompleteness():
-    def __init__(self, fasta, base_name, hmms, evalue=1e-10, weights=None,
-                 hlist=False, linkage=False, logger=None, lenient=False):
+    def __init__(self, fasta, base_name, hmms, evalue=1e-10, bias=0.1,
+                 best_domain=0.1, weights=None, hlist=False, linkage=False,
+                 logger=None, lenient=False):
         self.base_name = base_name
         self.evalue = "-E %s" % (str(evalue))
         self.tblout = "%s.tblout" % (self.base_name)
@@ -33,6 +34,8 @@ class calcCompleteness():
         self.lenient = lenient
         self.logger.log(logging.INFO, "Starting completeness for " + fasta)
         self.hmm_names = set({})
+        self.bias = bias
+        self.best_domain = best_domain
         with open(self.hmms) as hmmfile:
             for line in hmmfile:
                 if re.search('^NAME', line):
@@ -107,7 +110,7 @@ class calcCompleteness():
             for gene in sorted(gene_matches, key=lambda ev: float(ev[1])):
                 if not self.lenient:
                     # skip if sequence match found to be dubious
-                    if suspicion_check(gene):
+                    if suspicion_check(gene, self.bias, self.best_domain):
                         try:
                             self.logger.log(logging.INFO, "%s failed suspiscion check"
                                             % gene)
@@ -201,12 +204,12 @@ class calcCompleteness():
         weighted_complete = round(weighted_complete, 3)
         return weighted_complete, weighted_redun
 
-def suspicion_check(gene_match):
+def suspicion_check(gene_match, bias, bestdomain):
     """Check if bias is in the same order of magnitude as the match
     and if the evalue for the best domain is high. Both indicating
     a dubious result."""
-    if len(str(gene_match[3])) >= len(str(gene_match[2])) or \
-            float(gene_match[4]) > 0.01:
+    if float(gene_match[2]) * bias <= float(gene_match[3]) or \
+            float(gene_match[4]) > bestdomain:
         cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False
