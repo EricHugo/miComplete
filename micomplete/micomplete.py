@@ -121,6 +121,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
             raise NameError("A set of HMMs must be provided to calculate linkage")
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
+                                bias=argv.bias, best_domain=argv.domain_cutoff,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
                                 logger=logger)
@@ -175,6 +176,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     if argv.completeness:
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
+                                bias=argv.bias, best_domain=argv.domain_cutoff,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
                                 logger=logger)
@@ -527,6 +529,11 @@ def main():
     parser.add_argument("--evalue", required=False, type=float, default=1e-10,
             help="""Specify e-value cutoff to be used for completeness check.
             Default = 1e-10""")
+    parser.add_argument("--bias", required=False, type=float, default=0.1,
+            help="""Specify bias cutoff as fraction of score as defined by
+            hmmer""")
+    parser.add_argument("--domain-cutoff", type=float, default=0.1,
+            help="""Specify lowest best domain score for valid hit.""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
             help="""Specify cutoff percentage of markers required to be present
             in genome for it be included in linkage calculation. 
