@@ -305,7 +305,8 @@ def _dynamic_open(outfile='-'):
 def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
-        if total_fraction_bias > 0.5:
+        if total_fraction_bias:
+            print("%s has bias %f" % (hmm, total_fraction_bias))
             try:
                 logger.log(logging.WARNING, "More than 50 of found marker %s had "\
                            "more 10 of score bias. Consider not using this marker"
