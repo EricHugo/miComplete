@@ -121,6 +121,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
             raise NameError("A set of HMMs must be provided to calculate linkage")
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
+                                bias=argv.bias, best_domain=argv.domain_cutoff,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
                                 logger=logger)
@@ -175,6 +176,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     if argv.completeness:
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
+                                bias=argv.bias, best_domain=argv.domain_cutoff,
                                 weights=argv.weights, hlist=argv.hlist,
                                 linkage=argv.linkage, lenient=argv.lenient,
                                 logger=logger)
@@ -303,7 +305,8 @@ def _dynamic_open(outfile='-'):
 def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
-        if total_fraction_bias > 0.5:
+        if total_fraction_bias:
+            print("%s has bias %f" % (hmm, total_fraction_bias))
             try:
                 logger.log(logging.WARNING, "More than 50 of found marker %s had "\
                            "more 10 of score bias. Consider not using this marker"
@@ -416,7 +419,13 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
                 try:
                     header = ">" + feature.qualifiers['locus_tag'][0]
                 except KeyError:
-                    continue
+                    try:
+                        header = ">" + feature.qualifiers['gene'][0]
+                    except KeyError:
+                        try:
+                            header = ">" + feature.qualifiers['protein_id'][0]
+                        except KeyError:
+                            continue
                 # some CDS do not have translations, retrieve nucleotide sequence
                 # and translate
                 try:
@@ -521,6 +530,11 @@ def main():
     parser.add_argument("--evalue", required=False, type=float, default=1e-10,
             help="""Specify e-value cutoff to be used for completeness check.
             Default = 1e-10""")
+    parser.add_argument("--bias", required=False, type=float, default=0.1,
+            help="""Specify bias cutoff as fraction of score as defined by
+            hmmer""")
+    parser.add_argument("--domain-cutoff", type=float, default=0.1,
+            help="""Specify lowest best domain score for valid hit.""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
             help="""Specify cutoff percentage of markers required to be present
             in genome for it be included in linkage calculation. 
@@ -554,14 +568,15 @@ def main():
                       if not re.match('#|\n', seq)]
     
     if mp.cpu_count() < args.threads:
-        raise RuntimeError('Specified number of threads are larger than the '
-                           'number detected in the system: ' + mp.cpu_count())
+        raise RuntimeError('Specified number of threads are larger than the '\
+                           'number detected in the system: '\
+                           + str(mp.cpu_count()))
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=args.threads + 1)
     logger = _configure_logger(q, "main", "DEBUG")
-    writer = pool.apply_async(_listener, (q, args.outfile, args.linkage, logger,
-                                          args.log))
+    writer = pool.apply_async(_listener, (q, args.outfile),
+                              {"linkage":args.linkage, "logfile":args.log})
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     logger.log(logging.DEBUG, "List of given sequences:")
@@ -580,14 +595,14 @@ def main():
         try:
             job.get()
         except Exception as e:
-            # since Queue dies with manager, set up new logger here to 
+            # since Queue dies with manager, set up new logger here to
             # catch exceptions
             logger = logging.getLogger("main")
             handler = logging.FileHandler(args.log)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-            logger.log(logging.ERROR, "Error encountered in main. Exiting.", 
+            logger.log(logging.ERROR, "Error encountered in main. Exiting.",
                        exc_info=True)
             raise e
     logger.log(logging.INFO, "Finished work on all given sequences")

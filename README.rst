@@ -18,7 +18,7 @@ weighted versions of completeness and redundance which can inform the user a bit
 of marker genes provided.
 
 miComplete is still in a relatively early state of development, there are a few missing features and bugs are very much expected. Feedback, bug reports, and feature requests are welcome through Bitbucket's 
-`issue system <https://bitbucket.org/evolegiolab/micomplete/issues>`_).
+`issue system <https://bitbucket.org/evolegiolab/micomplete/issues>`_.
 
 Description
 ---------------
@@ -72,6 +72,8 @@ Required
 - Numpy (>= 1.13.1) (``$ pip install numpy``)
 - Matplotlib (>= 2.0.2) (``$ pip install matplotlib``)
 - Termcolor (>= 1.1.0) (``$ pip install termcolor``)
+
+Note: *matplotlib* as implemented requires a user interface. By default it uses *Tkinter*, which can be installed via your systems package manager. To alter backend used follow `these instructions <http://matplotlib.org/faq/usage_faq.html#what-is-a-backend>`_.
 
 
 Installation
