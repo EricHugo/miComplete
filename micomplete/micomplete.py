@@ -305,8 +305,7 @@ def _dynamic_open(outfile='-'):
 def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
-        if total_fraction_bias:
-            print("%s has bias %f" % (hmm, total_fraction_bias))
+        if total_fraction_bias > 0.5:
             try:
                 logger.log(logging.WARNING, "More than 50 of found marker %s had "\
                            "more 10 of score bias. Consider not using this marker"
@@ -533,8 +532,9 @@ def main():
     parser.add_argument("--bias", required=False, type=float, default=0.1,
             help="""Specify bias cutoff as fraction of score as defined by
             hmmer""")
-    parser.add_argument("--domain-cutoff", type=float, default=0.1,
-            help="""Specify lowest best domain score for valid hit.""")
+    parser.add_argument("--domain-cutoff", type=float, default=1e-2,
+            help="""Specify largest allowed difference between full sequence-
+            and domain evalues.""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
             help="""Specify cutoff percentage of markers required to be present
             in genome for it be included in linkage calculation. 
