@@ -187,12 +187,12 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
             headers['Present Markers'] = 0
         output.append(headers['Present Markers'])
         try:
-            headers['Completeness'] = '%0.3f' % (round(headers['Present Markers'] / total_hmms, 3))
+            headers['Completeness'] = '%0.4f' % (round(headers['Present Markers'] / total_hmms, 4))
         except ZeroDivisionError:
             headers['Completeness'] = 0
         output.append(headers['Completeness'])
         try:
-            headers['Redundance'] = '%0.3f' % (round((redun_hmms) / headers['Present Markers'], 3))
+            headers['Redundance'] = '%0.4f' % (round((redun_hmms) / headers['Present Markers'], 4))
         except ZeroDivisionError:
             headers['Redundance'] = 0
         output.append(headers['Redundance'])
@@ -202,8 +202,8 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
                 headers['Weighted completeness'], headers['Weighted redudndance'] = comp.attribute_weights()
             else:
                 headers['Weighted completeness'], headers['Weighted redudndance'] = 0, 0
-            output.append('%0.3f' % headers['Weighted completeness'])
-            output.append('%0.3f' % headers['Weighted redudndance'])
+            output.append('%0.4f' % headers['Weighted completeness'])
+            output.append('%0.4f' % headers['Weighted redudndance'])
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
