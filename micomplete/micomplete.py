@@ -76,7 +76,7 @@ HEADERS = {"Name": None,
 
 def _worker(seqObject, seq_type, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
-    base_name = os.path.basename(seqObject).split('.')[0]
+    base_name = base_name = ''.join(os.path.basename(seqObject).split('.')[:-1])
     if not name:
         name = base_name
     log_lvl = logging.WARNING
@@ -385,7 +385,7 @@ def create_proteome(fasta, base_name=None, logger=None):
         except AssertionError:
             raise RuntimeError('Unable to find prodigal in path')
     if not base_name:
-        base_name = os.path.basename(fasta).split('.')[0]
+        base_name = ''.join(os.path.basename(fasta).split('.')[:-1])
     prot_filename = base_name + "_prodigal.faa"
     if sys.version_info > (3, 4):
         subprocess.run(['prodigal', '-i', fasta, '-a', prot_filename],
@@ -402,7 +402,7 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     if outfile:
         output_handle = open(outfile, mode='w+')
     else:
-        base_name = os.path.basename(gbkfile).split('.')[0]
+        base_name = base_name = ''.join(os.path.basename(gbkfile).split('.')[:-1])
         outfile = base_name + "_translations.faa"
         output_handle = open(outfile, mode='w+')
     contig_n = 0
@@ -481,7 +481,7 @@ def get_contigs_gbk(gbk, name=None):
     """Extracts all sequences from gbk file, returns filename"""
     handle = open(gbk, mode='r')
     if not name:
-        name = os.path.basename(gbk).split('.')[0]
+        name = base_name = ''.join(os.path.basename(gbk).split('.')[:-1])
     out_handle = open(name, mode='w')
     for seq in SeqIO.parse(handle, "genbank"):
         out_handle.write(">" + seq.id + "\n")
@@ -566,7 +566,7 @@ def main():
     with open(args.sequence) as seq_file:
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
-    
+
     if mp.cpu_count() < args.threads:
         raise RuntimeError('Specified number of threads are larger than the '\
                            'number detected in the system: '\
