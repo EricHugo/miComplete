@@ -199,11 +199,11 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
         if argv.weights:
             logger.log(logging.INFO, "Gathering weighted completeness scores")
             if headers['Present Markers'] > 0:
-                headers['Weighted completeness'], headers['Weighted redudndance'] = comp.attribute_weights()
+                headers['Weighted completeness'], headers['Weighted redundance'] = comp.attribute_weights()
             else:
-                headers['Weighted completeness'], headers['Weighted redudndance'] = 0, 0
+                headers['Weighted completeness'], headers['Weighted redundance'] = 0, 0
             output.append('%0.4f' % headers['Weighted completeness'])
-            output.append('%0.4f' % headers['Weighted redudndance'])
+            output.append('%0.4f' % headers['Weighted redundance'])
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
