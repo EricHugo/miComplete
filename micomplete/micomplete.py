@@ -526,13 +526,13 @@ def main():
     parser.add_argument("--linkage", required=False, default=False,
             action='store_true', help="""Specifies that the provided sequences
             should be used to calculate the weights of the provided HMMs""")
-    parser.add_argument("--evalue", required=False, type=float, default=1e-10,
+    parser.add_argument("--evalue", required=False, type=float, default=4e-10,
             help="""Specify e-value cutoff to be used for completeness check.
-            Default = 1e-10""")
-    parser.add_argument("--bias", required=False, type=float, default=0.1,
+            Default = 4e-10""")
+    parser.add_argument("--bias", required=False, type=float, default=0.3,
             help="""Specify bias cutoff as fraction of score as defined by
             hmmer""")
-    parser.add_argument("--domain-cutoff", type=float, default=1e-2,
+    parser.add_argument("--domain-cutoff", type=float, default=1e-5,
             help="""Specify largest allowed difference between full sequence-
             and domain evalues.""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
