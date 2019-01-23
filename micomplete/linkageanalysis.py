@@ -72,21 +72,12 @@ class linkageAnalysis():
         rev_forw = marker_locs[1] >= query_locs[0]
         # query end after marker start
         if forw_rev and forws and not reverse:
-            #print("true")
-            #print(marker_locs)
-            #print(query_locs)
             return True
         # query start before marker end
         if rev_forw and revs and reverse:
-            #print("reverse true")
-            #print(marker_locs)
-            #print(query_locs)
             return True
         # within
         if not forws and not revs:
-            #print("within true")
-            #print(marker_locs)
-            #print(query_locs)
             return True
         return False
 
@@ -150,5 +141,10 @@ class linkageAnalysis():
         #print(total_distance)
         linkage_rel_vals = {hmm: [(linkVal / total_distance)]
                             for hmm, linkVal in linkage_absvals.items()}
+        for hmm, rel in linkage_rel_vals.items():
+            if rel[0] > 0.3:
+                print(rel)
+                print(self.base_name)
+                print(hmm)
         #print(self.linkage_rel_vals)
         return linkage_rel_vals
