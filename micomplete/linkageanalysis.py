@@ -12,14 +12,13 @@ import re
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
-                 hmm_matches, debug=False, logger=None):
+                 hmm_matches, logger=None):
         self.base_name = base_name
         self.seq_object = seq_object
         self.seq_type = seq_type
         _, self.seq_length, all_lengths, _ = seqstats
         self.proteome = proteome
         self.hmm_matches = hmm_matches
-        self.debug = debug
         self.hmm_locations = defaultdict(list)
         self.locs = defaultdict(list)
         self.logger = logger
@@ -35,7 +34,7 @@ class linkageAnalysis():
                 try:
                     self.logger.log(logging.WARNING, "%s contians multiple "\
                                     "contigs cannot be used to calculate "\
-                                    "weights. Skipping.")
+                                    "weights. Skipping." % self.base_name)
                 except AttributeError:
                     pass
                 self.is_valid = False

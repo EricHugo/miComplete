@@ -149,7 +149,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         logger.log(logging.INFO, "Starting linkage calculations of markers in"\
                    "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
-                                  hmm_matches, argv.debug, q)
+                                  hmm_matches, logger=logger)
         if not linkage.is_valid:
             return
         linkage_vals = linkage.calculate_linkage_scores()
