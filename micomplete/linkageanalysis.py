@@ -16,13 +16,30 @@ class linkageAnalysis():
         self.base_name = base_name
         self.seq_object = seq_object
         self.seq_type = seq_type
-        _, self.seq_length, _, _ = seqstats
+        _, self.seq_length, all_lengths, _ = seqstats
         self.proteome = proteome
         self.hmm_matches = hmm_matches
         self.debug = debug
         self.hmm_locations = defaultdict(list)
         self.locs = defaultdict(list)
         self.logger = logger
+        self.is_valid = True
+        # checks if there are more than one contig
+        # heuristically determines if it is one chromosome and plasmids
+        if len(all_lengths) > 1:
+            chromosome = 0
+            for length in all_lengths:
+                if (length / sum(all_lengths)) > 0.9:
+                    chromosome = length
+            if not chromosome:
+                try:
+                    self.logger.log(logging.WARNING, "%s contians multiple "\
+                                    "contigs cannot be used to calculate "\
+                                    "weights. Skipping.")
+                except AttributeError:
+                    pass
+                self.is_valid = False
+            self.seq_length = chromosome
         if seq_type == "faa":
             try:
                 self.logger.log(logging.ERROR, "Sequence given for linkage '\
