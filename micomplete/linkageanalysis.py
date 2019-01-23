@@ -59,9 +59,36 @@ class linkageAnalysis():
                     if re.search(re.escape(gene[0])+"\s", loc):
                         # convert to int and append to dict[hmm]
                         self.hmm_locations[hmm].append(list(map(int,
-                                                      loc.split('#')[1:3])))
+                                                       loc.split('#')[1:3])))
             #print(self.hmm_locations[hmm])
         return self.hmm_locations
+
+    def check_overlap(self, marker_locs, query_locs, reverse=False):
+        """Tries to resolve an overlap in locations. Returns true if
+        starting query loc precedes the match start"""
+        forws = marker_locs[0] >= query_locs[0]
+        revs = marker_locs[1] <= query_locs[1]
+        forw_rev = marker_locs[0] <= query_locs[1]
+        rev_forw = marker_locs[1] >= query_locs[0]
+        # query end after marker start
+        if forw_rev and forws and not reverse:
+            #print("true")
+            #print(marker_locs)
+            #print(query_locs)
+            return True
+        # query start before marker end
+        if rev_forw and revs and reverse:
+            #print("reverse true")
+            #print(marker_locs)
+            #print(query_locs)
+            return True
+        # within
+        if not forws and not revs:
+            #print("within true")
+            #print(marker_locs)
+            #print(query_locs)
+            return True
+        return False
 
     def find_neighbour_distance(self):
         """For each location of each matched marker the location of start and stop
@@ -84,6 +111,7 @@ class linkageAnalysis():
                 # reads locs and compares end of current read to start of all
                 # if negative -> adds sequence length to simulate circularity
                 forward_l = [[int(each[0] - loc[1]) if int(each[0] - loc[1] > 0)
+                              else 0 if self.check_overlap(loc, each)
                               else int(each[0] - loc[1] + self.seq_length) for
                               each in forw]
                              for key, forw in self.hmm_locations.items() if not
@@ -92,6 +120,7 @@ class linkageAnalysis():
                 forward_l_flat = list(chain.from_iterable(forward_l))
                 min_floc.append(min(forward_l_flat))
                 reverse_l = [[int(loc[0] - each[1]) if int(loc[0] - each[1] > 0)
+                              else 0 if self.check_overlap(loc, each, reverse=True)
                               else int(loc[0] - each[1] + self.seq_length) for
                               each in rev]
                              for key, rev in self.hmm_locations.items() if not
