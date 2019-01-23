@@ -150,6 +150,8 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
                    "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
                                   hmm_matches, argv.debug, q)
+        if not linkage.is_valid:
+            return
         linkage_vals = linkage.calculate_linkage_scores()
         for hmm, match in hmm_matches.items():
             linkage_vals[hmm].append(match)
@@ -353,13 +355,14 @@ def weights_output(weights_file, logger=None):
     labels = []
     median_weights = {}
     # establish medians, also append axis data
-    for hmm, weight in hmm_weights.items():
+    for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
+                              reverse=True):
         median_weights[hmm] = median(weight)
         data.append(weight)
         labels.append(hmm)
     # calculate normalized median weights
     weights_sum = sum(median_weights.values())
-    for hmm, median_weight in median_weights.items():
+    for hmm, median_weight in sorted(median_weights.items(), key=lambda kv: kv[1]):
         norm_weight = median_weight / weights_sum
         print(hmm + "\t" + str(norm_weight))
     # create boxplot
