@@ -32,7 +32,7 @@ class linkageAnalysis():
                     chromosome = length
             if not chromosome:
                 try:
-                    self.logger.log(logging.WARNING, "%s contians multiple "\
+                    self.logger.log(logging.WARNING, "%s contains multiple "\
                                     "contigs cannot be used to calculate "\
                                     "weights. Skipping." % self.base_name)
                 except AttributeError:
@@ -41,9 +41,9 @@ class linkageAnalysis():
             self.seq_length = chromosome
         if seq_type == "faa":
             try:
-                self.logger.log(logging.ERROR, "Sequence given for linkage '\
-                                analysis is proteome, must be nucleotide fasta '\
-                                or genbank file")
+                self.logger.log(logging.ERROR, "Sequence given for linkage "\
+                                "analysis is proteome, must be nucleotide fasta "\
+                                "or genbank file")
             except AttributeError:
                 pass
             raise TypeError('Sequences for linkage analysis needs to be fna or' \
