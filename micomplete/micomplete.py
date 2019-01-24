@@ -67,7 +67,7 @@ HEADERS = {"Name": None,
            "Completeness": None,
            "Redundance": None,
            "Weighted completeness": None,
-           "Weighted redudndance": None,
+           "Weighted redundance": None,
            "N50": None,
            "L50": None,
            "N90": None,
@@ -206,6 +206,8 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
                 headers['Weighted completeness'], headers['Weighted redundance'] = 0, 0
             output.append('%0.4f' % headers['Weighted completeness'])
             output.append('%0.4f' % headers['Weighted redundance'])
+            print(headers)
+            print(output)
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
@@ -508,11 +510,9 @@ def main():
 
     parser.add_argument("sequence", help="""Sequence(s) along with type (fna,
             faa, gbk) provided in a tabular format""")
-    parser.add_argument("-t", "--total", required=False, default=False,
-            action='store_true', help="""Print total (not implemented)""")
     parser.add_argument("-c", "--completeness", required=False, default=False,
             action='store_true', help="""Perform completeness check (also requires
-            a set of HMMs to have been provided""")
+            a set of HMMs to have been provided)""")
     parser.add_argument("--lenient", action='store_true', default=False,
             help="""By default miComplete drops hits with too high bias
             or too low best domain score. This argument disables that behavior, 
