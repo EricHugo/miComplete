@@ -65,9 +65,9 @@ HEADERS = {"Name": None,
            "GC-content": None,
            "Present Markers": None,
            "Completeness": None,
-           "Redundance": None,
+           "Redundancy": None,
            "Weighted completeness": None,
-           "Weighted redundance": None,
+           "Weighted redundancy": None,
            "N50": None,
            "L50": None,
            "N90": None,
@@ -194,18 +194,18 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
             headers['Completeness'] = 0
         output.append(headers['Completeness'])
         try:
-            headers['Redundance'] = '%0.4f' % (round((redun_hmms) / headers['Present Markers'], 4))
+            headers['Redundancy'] = '%0.4f' % (round((redun_hmms) / headers['Present Markers'], 4))
         except ZeroDivisionError:
-            headers['Redundance'] = 0
-        output.append(headers['Redundance'])
+            headers['Redundancy'] = 0
+        output.append(headers['Redundancy'])
         if argv.weights:
             logger.log(logging.INFO, "Gathering weighted completeness scores")
             if headers['Present Markers'] > 0:
-                headers['Weighted completeness'], headers['Weighted redundance'] = comp.attribute_weights()
+                headers['Weighted completeness'], headers['Weighted redundancy'] = comp.attribute_weights()
             else:
-                headers['Weighted completeness'], headers['Weighted redundance'] = 0, 0
+                headers['Weighted completeness'], headers['Weighted redundancy'] = 0, 0
             output.append('%0.4f' % headers['Weighted completeness'])
-            output.append('%0.4f' % headers['Weighted redundance'])
+            output.append('%0.4f' % headers['Weighted redundancy'])
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
@@ -498,7 +498,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="""
             Quality control of metagenome assembled genomes. Able to gather
-            relevant statistics of completeness and redundance of genomes given 
+            relevant statistics of completeness and redundancy of genomes given 
             sets of marker genes, as well as weighted versions of these statstics
             (including defining new weights for any given set).
             """,
