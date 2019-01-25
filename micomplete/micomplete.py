@@ -369,12 +369,12 @@ def weights_output(weights_file, logger=None):
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
     plt.boxplot(data, vert=False, sym='+')
-    ax.set_yticklabels(labels, fontsize=8)
+    ax.set_yticklabels(labels, fontsize=6)
     ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey',
                   alpha=0.5)
     ax.set_xlabel('Relative linkage distance')
     ax.set_ylabel('Markers')
-    plt.show()
+    plt.savefig("distplot.png", format="png", dpi=200)
 
 def create_proteome(fasta, base_name=None, logger=None):
     """Create proteome from given .fna file, returns proteome filename"""
