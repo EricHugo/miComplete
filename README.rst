@@ -8,40 +8,40 @@
 
 Introduction
 ----------------
-With the increasing rate of the production of genomics data, particularly metagenomic data, there is need for more and faster quality control of resulting assembled genomes. An increasing usage of 
-metagenome assembled genomes (MAGs) means often working with incomplete genomes, which can be acceptable providing the researcher is cognizant of this. Therefore there is a clear use for software 
-able to rapidly provide the stats that describe the quality and completeness of the genomes or genomic bins of interest.
+With the increasing rate of the production of genomics data, particularly metagenomic data, there is need for more and faster quality control of resulting assembled genomes. An increasing usage of
+metagenome assembled genomes (MAGs) means often working with incomplete genomes, which can be acceptable provided the researcher is aware of this. Therefore there is a clear use for software
+able to rapidly and accurately provide the stats that describe the quality and completeness of the genomes or genomic bins of interest.
 
-miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, N- and L50, N- and L90). Further a set of marker genes 
+miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, N- and L50, N- and L90). Further a set of marker genes
 in HMM format can be provided to also retrieve completeness and redundance of those markers in each genome. Additionally, a set of weights for the marker genes can be provided to also retrieve the
-weighted versions of completeness and redundance which can inform the user a bit more of the actual state completeness (see description). Alternatively, the user can calculate new weights for any given set
+weighted versions of completeness and redundancy which can inform the user a bit more of the actual state completeness (see description). Alternatively, the user can calculate new weights for any given set
 of marker genes provided.
 
-miComplete is still in a relatively early state of development, there are a few missing features and bugs are very much expected. Feedback, bug reports, and feature requests are welcome through Bitbucket's 
+miComplete is still in a state of development, bugs may be encountered. Feedback, bug reports, and feature requests are welcome through Bitbucket's
 `issue system <https://bitbucket.org/evolegiolab/micomplete/issues>`_.
 
+
 Description
----------------
-miComplete is a compact software aimed at the rapid determining of the quality of assembled genomes, often metagenome assembled. miComplete also aims at providing a more reliable completeness and redundance 
+--------------
+miComplete is a compact software aimed at the rapid and accurate determining of the quality of assembled genomes, often metagenome assembled bins. miComplete also aims at providing a more reliable completeness and redundancy
 metric via a system of weighting the impact of different marker genes presence or absence differently.
 
 Completeness
 ^^^^^^^^^^^^^^^
-In miComplete completeness is calculated based on the presence/absence a set of marker genes provided as a set of HMMs. The presence or absence of the marker genes is determined by HMMER3 (see dependencies) 
-if the hit reported is below the cutoff e-value provided. Duplicated marker genes are also gathered, and found duplications are reported as redundance, but only if the e-value of the reported duplicated 
-hit is at least equal to or less than the square root of the the best hit (though this can easily be altered as desired by the user).
+In miComplete completeness is calculated based on the presence/absence a set of marker genes provided as a set of HMMs. The presence or absence of the marker genes is determined by HMMER3 (see dependencies)
+if the hit reported is below the cutoff e-value provided as well as passing the bias check. Duplicated marker genes are also gathered, and found duplications are reported as redundancy.
 
 Weights
 ^^^^^^^^^^^
-Not all marker genes are equal in determining the completeness of a genome. Some genes associate closely together within a genome (not in the least genes in operons), and thus viewing two genes that typically 
-associate together within an operon as providing the same completeness information as two unrelated genes would be misleading. miComplete is able to calculate a weighted version of completeness and redundance 
+Because not all marker genes are equal in determining the completeness of a genome. Some genes associate closely together within a genome (particularly genes organised into operons), and thus viewing two genes that typically
+associate together within an operon as providing the same completeness information as two unrelated genes could be profoundly misleading. miComplete is able to calculate a weighted version of completeness and redundancy
 that attempts to factor in how closely the provided marker genes typically associate with other provided marker genes.
 
 Linkage
 """""""""""""""""
-Weights can be calculated for any given set of marker genes in miComplete. This is can be done by a user by providing a set of reference genomes (note that these need to be single contig chromosomes). 
-The reference genomes can be any set that the user wishes, but as general rule the larger and more diverse number of genomes the better weights. At the end of the run a boxplot of the distribution of 
-weights for all markers is produced.
+Weights can be calculated for any given set of marker genes in miComplete. This is can be done by a user by providing a set of reference genomes (note that these need to be single contig chromosomes).
+The reference genomes can be any set that the user wishes, but as general rule the larger and more diverse number of genomes the better weights. At the end of the run a boxplot of the distribution of
+weights for all markers is produced along with a file of the relative weights to be used in future runs.
 
 Dependencies
 --------------
@@ -58,7 +58,7 @@ HMMER: biosequence analysis using profile hidden Markov models, by Sean Eddy and
 
 prodigal
 """"""""""""""""
-A gene prediction software by Doug Hyatt. Tested with v. 2.6.3. Download at: 
+A gene prediction software by Doug Hyatt. Tested with v. 2.6.3. Download at:
 <https://github.com/hyattpd/Prodigal>
 
 Python libraries
@@ -126,20 +126,27 @@ Optional arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
    -h, --help          show help message and exit
-   -c, --completeness  Do completeness check (also requires a set of HMMs to have been provided)
+   -c, --completeness  Perform completeness check (also requires a set of HMMs to have been provided)
    --hlist             Write list of Present, Absent and Duplicated markers for each organism to file
    --hmms HMMS         Specifies a set of HMMs to be used for completeness check or linkage analysis
    --weights WEIGHTS   Specify a set of weights for the HMMs specified, (optional)
    --linkage           Specifies that the provided sequences should be used to calculate the weights of the provided HMMs
-   --evalue EVALUE     Specify e-value cutoff to be used for completeness check, default=1e-10
+   --lenient           By default miComplete drops hits with too high bias or too low best domain score. This argument disables that behaivor, permitting any hit that meets the evalue requirements.
+   --evalue EVALUE     Specify e-value cutoff to be used for completeness check, default=4e-10
+   --bias BIAS         Specify the bias cutoff as a fraction of score defined by hammer.
+   --domain-cutoff     Specify the largest allowed difference between best domain evalue and protein evalue.
    --cutoff CUTOFF     Specify cutoff percentage of markers required to be present in genome for it be included in linkage calculat. Default = 0.9
    --threads THREADS   Specify number of threads to be used in parallel
    --log LOG           Log name (default=miComplete.log)
    -v, --verbose       Enable verbose logging
-   --debug             Debug mode
+   --debug             Debug logging
+   -o, --outfile OUTFILE    Name of outfile can be specified with this argument. By default prints to stdout.
    
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^
+Create a sequence tab file. This can be done by hand or using a small utility script included with miComplete::
+
+   find test_set_common_fna/ -type f -maxdepth 1 | bash miCompletelist.sh > test_set.tab
 
 Sequence tab file, test_set.tab::
 
