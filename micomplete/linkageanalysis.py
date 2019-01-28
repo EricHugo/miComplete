@@ -12,7 +12,7 @@ import re
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
-                 hmm_matches, logger=None):
+                 hmm_matches, cutoff=True, logger=None):
         self.base_name = base_name
         self.seq_object = seq_object
         self.seq_type = seq_type
@@ -25,7 +25,7 @@ class linkageAnalysis():
         self.is_valid = True
         # checks if there are more than one contig
         # heuristically determines if it is one chromosome and plasmids
-        if len(all_lengths) > 1:
+        if len(all_lengths) > 1 and cutoff:
             chromosome = 0
             for length in all_lengths:
                 if (length / sum(all_lengths)) > 0.9:

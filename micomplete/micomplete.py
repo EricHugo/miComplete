@@ -149,7 +149,8 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         logger.log(logging.INFO, "Starting linkage calculations of markers in"\
                    "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
-                                  hmm_matches, logger=logger)
+                                  hmm_matches, cutoff=argv.no_linkage_cutoff,
+                                  logger=logger)
         if not linkage.is_valid:
             return
         linkage_vals = linkage.calculate_linkage_scores()
@@ -506,7 +507,7 @@ def main():
                 https://bitbucket.org/evolegiolab/micomplete or directly to 
                 eric@hugoson.org""")
 
-    parser.add_argument("sequence", help="""Sequence(s) along with type (fna,
+    parser.add_argument("sequence_tab", help="""Sequence(s) along with type (fna,
             faa, gbk) provided in a tabular format""")
     parser.add_argument("-c", "--completeness", required=False, default=False,
             action='store_true', help="""Perform completeness check (also requires
@@ -527,6 +528,11 @@ def main():
     parser.add_argument("--linkage", required=False, default=False,
             action='store_true', help="""Specifies that the provided sequences
             should be used to calculate the weights of the provided HMMs""")
+    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True, 
+            help="Disable cutoff fraction of the entire fasta which needs to be "\
+                 "contained in a single contig in order to be included in "\
+                 "linkage calculations. Disabling this is likely to result "\
+                 "in some erroneous calculations.")
     parser.add_argument("--evalue", required=False, type=float, default=4e-10,
             help="""Specify e-value cutoff to be used for completeness check.
             Default = 4e-10""")
@@ -564,7 +570,7 @@ def main():
             except AssertionError:
                 raise RuntimeError('Unable to find hmmsearch in path')
 
-    with open(args.sequence) as seq_file:
+    with open(args.sequence_tab) as seq_file:
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
 
