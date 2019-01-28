@@ -23,7 +23,7 @@ miComplete is still in a state of development, bugs may be encountered. Feedback
 
 Description
 --------------
-miComplete is a compact software aimed at the rapid and accurate determining of the quality of assembled genomes, often metagenome assembled bins. miComplete also aims at providing a more reliable completeness and redundancy
+miComplete is a compact software aimed at rapidly and accurately determining of the quality of assembled genomes, often metagenome assembled bins. miComplete also aims at providing a more reliable completeness and redundancy
 metric via a system of weighting the impact of different marker genes presence or absence differently.
 
 Completeness
@@ -95,31 +95,33 @@ Git
 1. Choose an appropriate location, e.g. your home::
 
    $ cd $HOME
-   
+
 2. Clone the latest version of the repository::
-   
+
    $ git clone http://bitbucket.org/evolegiolab/micomplete.git
 
 3. Create symlink to some directory in your ``$PATH`` (in this example ``$HOME/bin``)::
 
    $ cd micomplete
    $ ls micomplete
-   $ ln -s $(realpath micomplete/micomplete.py $HOME/bin/miComplete)
-   
-3. Optionally, add the folder ``micomplete`` in your ``PATH``. The scripts should be kept at their original location.
+   $ ln -s $(realpath micomplete/micomplete.py) $HOME/bin/miComplete
+
+4. Optionally, add the folder ``micomplete`` in your ``PATH``. The scripts should be kept at their original location.
 
 Usage
 --------------
 
 Positional arguments
 ^^^^^^^^^^^^^^^^^^^^^^^
+::
 
    A file of sequence(s) along with type (fna, faa, gbk) provided in a tabular format
 
-The file has to contain per line both a path (relative or absolute) to a genomic file as well as the type (separated by a tab)::
+The file has to contain per line both a path (relative or absolute) to a genomic file as well as the type separated by a tab. Optionally it can also be given a custom name separately from the filename in a third column::
 
-   /seq/genomic_sources/e_coli.fna   fna
-   /seq/genomic_sources/l_pneumophila.gbk   gbk
+   /seq/genomic_sources/legionella_pneumophila.gbk   gbk
+   /seq/genomic_sources/coxiella_burnetii.fna fna
+   /seq/genomic_sources/e_coli.fna   fna    MG1655_reference
    (...)
 
 Optional arguments
@@ -132,6 +134,7 @@ Optional arguments
    --weights WEIGHTS   Specify a set of weights for the HMMs specified, (optional)
    --linkage           Specifies that the provided sequences should be used to calculate the weights of the provided HMMs
    --lenient           By default miComplete drops hits with too high bias or too low best domain score. This argument disables that behaivor, permitting any hit that meets the evalue requirements.
+   --no-linkage-cutoff  Disable cutoff fraction of the entire fasta which needs to be contained in a single contig in order to be included in linkage calculations. Disable this is likely to result in some erroneos calculations.
    --evalue EVALUE     Specify e-value cutoff to be used for completeness check, default=4e-10
    --bias BIAS         Specify the bias cutoff as a fraction of score defined by hammer.
    --domain-cutoff     Specify the largest allowed difference between best domain evalue and protein evalue.
@@ -144,16 +147,16 @@ Optional arguments
    
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Create a sequence tab file. This can be done by hand or using a small utility script included with miComplete::
+Create a sequence tab file. Here it is best to avoid relative paths unless you know you will be running miComplete from the same relative directory. A correctly formatted input tab file can be done by hand or using a small utility script included with miComplete::
 
-   find test_set_common_fna/ -type f -maxdepth 1 | bash miCompletelist.sh > test_set.tab
+   find $(realpath .) -maxdepth 1 -type f -name "*.fna" | miCompletelist.sh > test_set.tab
 
 Sequence tab file, test_set.tab::
 
-   test_set_common_fna/klebsiella_pneumoniae.fna   fna
-   test_set_common_fna/pseudonomonas_aeruginosa.fna        fna
-   test_set_common_fna/escherichia_coli.fna        fna
-   test_set_common_fna/salmonella_enterica.fna     fna
+   /seq/genomic_sources/legionella_longbeachae.fna  fna
+   /seq/genomic_sources/coxiella_burnetii.fna   fna
+   /seq/genomic_sources/coxiella-like_endosymbiont.fna  fna
+
    
 Example 1 - Basic stats
 """"""""""""""""""""""""
@@ -162,10 +165,9 @@ This example merely produces basic information about the given sequences::
 
    $ miComplete test_set.tab
    Name	Length	GC-content	N50	L50	N90	L90
-   klebsiella_pneumoniae	5682322	57.12	5333942	1	5333942	1
-   pseudonomonas_aeruginosa	6264404	66.56	6264404	1	6264404	1
-   escherichia_coli	4641652	50.79	4641652	1	4641652	1
-   salmonella_enterica	5133713	51.87	4809037	1	4809037	1
+   legionella_longbeachae	4149158	37.13	4077332	1	4077332	1
+   coxiella_burnetii	2032807	42.6	1995488	1	1995488	1
+   coxiella-like_endosymbiont	1733840	38.17	1733840	1	1733840	1
    
 miComplete prints result to stdout in tabular format, this can favourably be redirected towards a file with a pipe and examined with spreadsheet reader. ::
 
@@ -176,36 +178,34 @@ Example 2 - Completeness
 
 This example will produce the same basic statistics, but also completeness and redundance::
 
-   $ miComplete test_set.tab -c --hmms share/Bact139.hmm
-   Name	Length	GC-content	Present Markers	Completeness	Redundance	N50	L50	N90	L90
-   escherichia_coli	4641652	50.79	139	1.000	1.000	4641652	1	4641652	1
-   salmonella_enterica	5133713	51.87	138	0.993	1.000	4809037	1	4809037	1
-   klebsiella_pneumoniae	5682322	57.12	136	0.978	1.000	5333942	1	5333942	1
-   pseudonomonas_aeruginosa	6264404	66.56	135	0.971	1.000	6264404   1	6264404	1
+   $ miComplete test_set.tab -c --hmms ~/git/micomplete/share/Bact105.hmm
+   Name	Length	GC-content	Present Markers	Completeness	Redundancy	N50	L50	N90	L90
+   legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	4077332	1	4077332	1
+   coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1995488	1	1995488	1
+   coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	1733840	1	1733840	1
+   
+That is great, but the run time is starting to increase significantly primarily due to needing to translate four genomes to proteomes.
+We can speed up the process by running all four parallel with ``--threads 4``::
 
-That is great, but the run time is starting to increase significantly since we have to translate four genomes to proteomes. 
-We can speed up the process by running all four parallel with ``--threads``::
-
-   $ miComplete test_set.tab -c --hmms share/Bact139.hmm --threads 4 > results.tab
+   $ miComplete test_set.tab -c --hmms share/Bact105.hmm --threads 4 > results.tab
    
 Example 3 - Weighted completeness
 """"""""""""""""""""""""""""""""""
 
 This example will also produce the weighted completeness::
 
-   $ miComplete test_set.tab -c --hmms share/Bact139.hmm --weights share/Bact139.weights --threads 4
-   Name	Length	GC-content	Present Markers	Completeness	Redundance	CompletenessW	RedundanceW	N50	L50	N90	L90
-   escherichia_coli	4641652	50.79	139	1.000	1.000	1.000	1.000	4641652	1	4641652	1
-   salmonella_enterica	5133713	51.87	138	0.993	1.000	0.991	1.000	4809037	1	4809037	1
-   klebsiella_pneumoniae	5682322	57.12	136	0.978	1.000	0.982	1.000	5333942	1	5333942	1
-   pseudonomonas_aeruginosa	6264404	66.56	135	0.971	1.000	0.965	1.000	6264404	1	6264404	1
+   $ miComplete test_set.tab -c --hmms ~/git/micomplete/share/Bact105.hmm --weights ~/git/micomplete/share/Bact105.weights
+   Name	Length	GC-content	Present Markers	Completeness	Redundancy	Weighted completeness	Weighted redundancy	N50	L50	N90	L90
+   legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	1.0	1.0151	4077332	1	4077332	1
+   coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1.0	1.0	1995488	1	1995488	1
+   coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	0.9476	1.0855	1733840	1	1733840	1
 
 Example 4 - Creating weights
 """"""""""""""""""""""""""""
 
-Finally we will create our own set of weights given a set of marker genes for which we do not already have weights::
+Finally we will create our own set of weights given a set of marker genes for which we do not already have weights. In this example only three bacteria from the same order are used to create weights. Generally one should create weights with as a large number of well distributed (or at least as widely distributed as the data you intend to use the weights for) genomes::
 
-   $ miComplete test_set.tab -c --hmms share/Bact109.hmm --linkage --threads 4 > Bact109.weights
+   $ miComplete test_set.tab -c --hmms share/Bact105.hmm --linkage --threads 4 > Bact105.weights
 
-Also produces a box plot of the distribution of weights for each marker gene.
+Also produces a box plot (distplot.png) of the distribution of weights for each marker gene.
 
