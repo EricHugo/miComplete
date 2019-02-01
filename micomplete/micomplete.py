@@ -65,9 +65,9 @@ HEADERS = {"Name": None,
            "GC-content": None,
            "Present Markers": None,
            "Completeness": None,
-           "Redundance": None,
+           "Redundancy": None,
            "Weighted completeness": None,
-           "Weighted redudndance": None,
+           "Weighted redundancy": None,
            "N50": None,
            "L50": None,
            "N90": None,
@@ -76,7 +76,7 @@ HEADERS = {"Name": None,
 
 def _worker(seqObject, seq_type, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
-    base_name = os.path.basename(seqObject).split('.')[0]
+    base_name = base_name = ''.join(os.path.basename(seqObject).split('.')[:-1])
     if not name:
         name = base_name
     log_lvl = logging.WARNING
@@ -149,7 +149,10 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         logger.log(logging.INFO, "Starting linkage calculations of markers in"\
                    "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
-                                  hmm_matches, argv.debug, q)
+                                  hmm_matches, cutoff=argv.no_linkage_cutoff,
+                                  logger=logger)
+        if not linkage.is_valid:
+            return
         linkage_vals = linkage.calculate_linkage_scores()
         for hmm, match in hmm_matches.items():
             linkage_vals[hmm].append(match)
@@ -187,23 +190,23 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
             headers['Present Markers'] = 0
         output.append(headers['Present Markers'])
         try:
-            headers['Completeness'] = '%0.3f' % (round(headers['Present Markers'] / total_hmms, 3))
+            headers['Completeness'] = '%0.4f' % (round(headers['Present Markers'] / total_hmms, 4))
         except ZeroDivisionError:
             headers['Completeness'] = 0
         output.append(headers['Completeness'])
         try:
-            headers['Redundance'] = '%0.3f' % (round((redun_hmms) / headers['Present Markers'], 3))
+            headers['Redundancy'] = '%0.4f' % (round((redun_hmms) / headers['Present Markers'], 4))
         except ZeroDivisionError:
-            headers['Redundance'] = 0
-        output.append(headers['Redundance'])
+            headers['Redundancy'] = 0
+        output.append(headers['Redundancy'])
         if argv.weights:
             logger.log(logging.INFO, "Gathering weighted completeness scores")
             if headers['Present Markers'] > 0:
-                headers['Weighted completeness'], headers['Weighted redudndance'] = comp.attribute_weights()
+                headers['Weighted completeness'], headers['Weighted redundancy'] = comp.attribute_weights()
             else:
-                headers['Weighted completeness'], headers['Weighted redudndance'] = 0, 0
-            output.append('%0.3f' % headers['Weighted completeness'])
-            output.append('%0.3f' % headers['Weighted redudndance'])
+                headers['Weighted completeness'], headers['Weighted redundancy'] = 0, 0
+            output.append('%0.4f' % headers['Weighted completeness'])
+            output.append('%0.4f' % headers['Weighted redundancy'])
     # only calculate assembly stats if filetype is fna
     if argv.hlist:
         logger.log(logging.INFO, "Writing found/missing/duplicated marker lists")
@@ -305,8 +308,7 @@ def _dynamic_open(outfile='-'):
 def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
-        if total_fraction_bias:
-            print("%s has bias %f" % (hmm, total_fraction_bias))
+        if total_fraction_bias > 0.5:
             try:
                 logger.log(logging.WARNING, "More than 50 of found marker %s had "\
                            "more 10 of score bias. Consider not using this marker"
@@ -354,25 +356,26 @@ def weights_output(weights_file, logger=None):
     labels = []
     median_weights = {}
     # establish medians, also append axis data
-    for hmm, weight in hmm_weights.items():
+    for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
+                              reverse=True):
         median_weights[hmm] = median(weight)
         data.append(weight)
         labels.append(hmm)
     # calculate normalized median weights
     weights_sum = sum(median_weights.values())
-    for hmm, median_weight in median_weights.items():
+    for hmm, median_weight in sorted(median_weights.items(), key=lambda kv: kv[1]):
         norm_weight = median_weight / weights_sum
         print(hmm + "\t" + str(norm_weight))
     # create boxplot
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
     plt.boxplot(data, vert=False, sym='+')
-    ax.set_yticklabels(labels, fontsize=8)
+    ax.set_yticklabels(labels, fontsize=6)
     ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey',
                   alpha=0.5)
     ax.set_xlabel('Relative linkage distance')
     ax.set_ylabel('Markers')
-    plt.show()
+    plt.savefig("distplot.png", format="png", dpi=200)
 
 def create_proteome(fasta, base_name=None, logger=None):
     """Create proteome from given .fna file, returns proteome filename"""
@@ -386,7 +389,7 @@ def create_proteome(fasta, base_name=None, logger=None):
         except AssertionError:
             raise RuntimeError('Unable to find prodigal in path')
     if not base_name:
-        base_name = os.path.basename(fasta).split('.')[0]
+        base_name = ''.join(os.path.basename(fasta).split('.')[:-1])
     prot_filename = base_name + "_prodigal.faa"
     if sys.version_info > (3, 4):
         subprocess.run(['prodigal', '-i', fasta, '-a', prot_filename],
@@ -403,7 +406,7 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     if outfile:
         output_handle = open(outfile, mode='w+')
     else:
-        base_name = os.path.basename(gbkfile).split('.')[0]
+        base_name = base_name = ''.join(os.path.basename(gbkfile).split('.')[:-1])
         outfile = base_name + "_translations.faa"
         output_handle = open(outfile, mode='w+')
     contig_n = 0
@@ -482,7 +485,7 @@ def get_contigs_gbk(gbk, name=None):
     """Extracts all sequences from gbk file, returns filename"""
     handle = open(gbk, mode='r')
     if not name:
-        name = os.path.basename(gbk).split('.')[0]
+        name = base_name = ''.join(os.path.basename(gbk).split('.')[:-1])
     out_handle = open(name, mode='w')
     for seq in SeqIO.parse(handle, "genbank"):
         out_handle.write(">" + seq.id + "\n")
@@ -496,7 +499,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="""
             Quality control of metagenome assembled genomes. Able to gather
-            relevant statistics of completeness and redundance of genomes given 
+            relevant statistics of completeness and redundancy of genomes given 
             sets of marker genes, as well as weighted versions of these statstics
             (including defining new weights for any given set).
             """,
@@ -504,13 +507,11 @@ def main():
                 https://bitbucket.org/evolegiolab/micomplete or directly to 
                 eric@hugoson.org""")
 
-    parser.add_argument("sequence", help="""Sequence(s) along with type (fna,
+    parser.add_argument("sequence_tab", help="""Sequence(s) along with type (fna,
             faa, gbk) provided in a tabular format""")
-    parser.add_argument("-t", "--total", required=False, default=False,
-            action='store_true', help="""Print total (not implemented)""")
     parser.add_argument("-c", "--completeness", required=False, default=False,
             action='store_true', help="""Perform completeness check (also requires
-            a set of HMMs to have been provided""")
+            a set of HMMs to have been provided)""")
     parser.add_argument("--lenient", action='store_true', default=False,
             help="""By default miComplete drops hits with too high bias
             or too low best domain score. This argument disables that behavior, 
@@ -527,14 +528,20 @@ def main():
     parser.add_argument("--linkage", required=False, default=False,
             action='store_true', help="""Specifies that the provided sequences
             should be used to calculate the weights of the provided HMMs""")
-    parser.add_argument("--evalue", required=False, type=float, default=1e-10,
+    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True, 
+            help="Disable cutoff fraction of the entire fasta which needs to be "\
+                 "contained in a single contig in order to be included in "\
+                 "linkage calculations. Disabling this is likely to result "\
+                 "in some erroneous calculations.")
+    parser.add_argument("--evalue", required=False, type=float, default=4e-10,
             help="""Specify e-value cutoff to be used for completeness check.
-            Default = 1e-10""")
-    parser.add_argument("--bias", required=False, type=float, default=0.1,
+            Default = 4e-10""")
+    parser.add_argument("--bias", required=False, type=float, default=0.3,
             help="""Specify bias cutoff as fraction of score as defined by
             hmmer""")
-    parser.add_argument("--domain-cutoff", type=float, default=0.1,
-            help="""Specify lowest best domain score for valid hit.""")
+    parser.add_argument("--domain-cutoff", type=float, default=1e-5,
+            help="""Specify largest allowed difference between full sequence-
+            and domain evalues.""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
             help="""Specify cutoff percentage of markers required to be present
             in genome for it be included in linkage calculation. 
@@ -563,10 +570,10 @@ def main():
             except AssertionError:
                 raise RuntimeError('Unable to find hmmsearch in path')
 
-    with open(args.sequence) as seq_file:
+    with open(args.sequence_tab) as seq_file:
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
-    
+
     if mp.cpu_count() < args.threads:
         raise RuntimeError('Specified number of threads are larger than the '\
                            'number detected in the system: '\

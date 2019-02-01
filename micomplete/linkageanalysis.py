@@ -12,22 +12,38 @@ import re
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
-                 hmm_matches, debug=False, logger=None):
+                 hmm_matches, cutoff=True, logger=None):
         self.base_name = base_name
         self.seq_object = seq_object
         self.seq_type = seq_type
-        _, self.seq_length, _, _ = seqstats
+        _, self.seq_length, all_lengths, _ = seqstats
         self.proteome = proteome
         self.hmm_matches = hmm_matches
-        self.debug = debug
         self.hmm_locations = defaultdict(list)
         self.locs = defaultdict(list)
         self.logger = logger
+        self.is_valid = True
+        # checks if there are more than one contig
+        # heuristically determines if it is one chromosome and plasmids
+        if len(all_lengths) > 1 and cutoff:
+            chromosome = 0
+            for length in all_lengths:
+                if (length / sum(all_lengths)) > 0.9:
+                    chromosome = length
+            if not chromosome:
+                try:
+                    self.logger.log(logging.WARNING, "%s contains multiple "\
+                                    "contigs cannot be used to calculate "\
+                                    "weights. Skipping." % self.base_name)
+                except AttributeError:
+                    pass
+                self.is_valid = False
+            self.seq_length = chromosome
         if seq_type == "faa":
             try:
-                self.logger.log(logging.ERROR, "Sequence given for linkage '\
-                                analysis is proteome, must be nucleotide fasta '\
-                                or genbank file")
+                self.logger.log(logging.ERROR, "Sequence given for linkage "\
+                                "analysis is proteome, must be nucleotide fasta "\
+                                "or genbank file")
             except AttributeError:
                 pass
             raise TypeError('Sequences for linkage analysis needs to be fna or' \
@@ -59,9 +75,27 @@ class linkageAnalysis():
                     if re.search(re.escape(gene[0])+"\s", loc):
                         # convert to int and append to dict[hmm]
                         self.hmm_locations[hmm].append(list(map(int,
-                                                      loc.split('#')[1:3])))
+                                                       loc.split('#')[1:3])))
             #print(self.hmm_locations[hmm])
         return self.hmm_locations
+
+    def check_overlap(self, marker_locs, query_locs, reverse=False):
+        """Tries to resolve an overlap in locations. Returns true if
+        starting query loc precedes the match start"""
+        forws = marker_locs[0] >= query_locs[0]
+        revs = marker_locs[1] <= query_locs[1]
+        forw_rev = marker_locs[0] <= query_locs[1]
+        rev_forw = marker_locs[1] >= query_locs[0]
+        # query end after marker start
+        if forw_rev and forws and not reverse:
+            return True
+        # query start before marker end
+        if rev_forw and revs and reverse:
+            return True
+        # within
+        if not forws and not revs:
+            return True
+        return False
 
     def find_neighbour_distance(self):
         """For each location of each matched marker the location of start and stop
@@ -84,6 +118,7 @@ class linkageAnalysis():
                 # reads locs and compares end of current read to start of all
                 # if negative -> adds sequence length to simulate circularity
                 forward_l = [[int(each[0] - loc[1]) if int(each[0] - loc[1] > 0)
+                              else 0 if self.check_overlap(loc, each)
                               else int(each[0] - loc[1] + self.seq_length) for
                               each in forw]
                              for key, forw in self.hmm_locations.items() if not
@@ -92,6 +127,7 @@ class linkageAnalysis():
                 forward_l_flat = list(chain.from_iterable(forward_l))
                 min_floc.append(min(forward_l_flat))
                 reverse_l = [[int(loc[0] - each[1]) if int(loc[0] - each[1] > 0)
+                              else 0 if self.check_overlap(loc, each, reverse=True)
                               else int(loc[0] - each[1] + self.seq_length) for
                               each in rev]
                              for key, rev in self.hmm_locations.items() if not
@@ -121,5 +157,10 @@ class linkageAnalysis():
         #print(total_distance)
         linkage_rel_vals = {hmm: [(linkVal / total_distance)]
                             for hmm, linkVal in linkage_absvals.items()}
+        for hmm, rel in linkage_rel_vals.items():
+            if rel[0] > 0.3:
+                print(rel)
+                print(self.base_name)
+                print(hmm)
         #print(self.linkage_rel_vals)
         return linkage_rel_vals

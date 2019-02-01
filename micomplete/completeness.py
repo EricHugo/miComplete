@@ -200,8 +200,8 @@ class calcCompleteness():
                     if re.match(hmm + "\t", each_weight):
                         weighted_redun += float(each_weight.split()[1])
         weighted_redun = round(((weighted_redun + weighted_complete) /
-                                weighted_complete), 3)
-        weighted_complete = round(weighted_complete, 3)
+                                weighted_complete), 4)
+        weighted_complete = round(weighted_complete, 4)
         return weighted_complete, weighted_redun
 
 def suspicion_check(gene_match, bias, bestdomain):
@@ -209,7 +209,7 @@ def suspicion_check(gene_match, bias, bestdomain):
     and if the evalue for the best domain is high. Both indicating
     a dubious result."""
     if float(gene_match[2]) * bias <= float(gene_match[3]) or \
-            float(gene_match[4]) > bestdomain:
+            float(gene_match[4]) - float(gene_match[1]) > bestdomain:
         cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False
