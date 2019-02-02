@@ -92,7 +92,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         log_lvl = logging.INFO
     logger = _configure_logger(q, name, log_lvl)
     logger.log(logging.INFO, "Started work on %s" % name)
-    if argv.linkage or argv.completeness:
+    if argv.hmms:
         logger.log(logging.INFO, "Creating proteome")
         if re.match("(gb.?.?)|genbank", seq_type):
             logger.log(logging.INFO, "gbk-file, will attempt to extract"\
@@ -182,7 +182,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     else:
         fastats, headers['Length'], all_lengths, headers['GC-content'] = "-", "-", "-", "-"
     #output.extend((name, seq_length, GC))
-    if argv.completeness:
+    if argv.hmms:
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
                                 bias=argv.bias, best_domain=argv.domain_cutoff,
@@ -515,9 +515,6 @@ def main():
 
     parser.add_argument("sequence_tab", help="""Sequence(s) along with type (fna,
             faa, gbk) provided in a tabular format""")
-    parser.add_argument("-c", "--completeness", required=False, default=False,
-            action='store_true', help="""Perform completeness check (also requires
-            a set of HMMs to have been provided)""")
     parser.add_argument("--lenient", action='store_true', default=False,
             help="""By default miComplete drops hits with too high bias
             or too low best domain score. This argument disables that behavior, 
@@ -565,7 +562,7 @@ def main():
                         "printing to stdout")
     args = parser.parse_args()
 
-    if args.completeness or args.linkage:
+    if args.hmms or args.linkage:
         try:
             assert shutil.which('hmmsearch')
         except AssertionError:
