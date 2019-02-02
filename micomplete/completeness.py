@@ -210,6 +210,6 @@ def suspicion_check(gene_match, bias, bestdomain):
     a dubious result."""
     if float(gene_match[2]) * bias <= float(gene_match[3]) or \
             float(gene_match[4]) - float(gene_match[1]) > bestdomain:
-        cprint(gene_match, "magenta", file=sys.stderr)
+        #cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False
