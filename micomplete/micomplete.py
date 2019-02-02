@@ -518,7 +518,11 @@ def main():
     parser.add_argument("--lenient", action='store_true', default=False,
             help="""By default miComplete drops hits with too high bias
             or too low best domain score. This argument disables that behavior, 
-            permitting any hit that meets the evalue requirements.""")
+            permitting any hit which meet the evalue requirements.""")
+    parser.add_argument("--format", default=None, choices=['fna', 'faa', 'gbk'],
+            help="""This argument should be used when a single sequence file
+            is given in place of tabulated file of sequences. The argument
+            should be followed by the format of the sequence.""")
     parser.add_argument("--hlist", required=False, default=None, type=str,
             nargs='?', help="""Write list of Present, Absent and
             Duplicated markers for each organism to file""")
@@ -593,16 +597,26 @@ def main():
                               {"linkage":args.linkage, "logfile":args.log})
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
-    logger.log(logging.DEBUG, "List of given sequences:")
-    for seq in input_seqs:
-        logger.log(logging.DEBUG, seq[0])
     jobs = []
-    for i in input_seqs:
-        if len(i) == 2:
-            i.append(None)
-        job = pool.apply_async(_worker, (i[0], i[1], args),
-                               {"q":q, "name":i[2]})
+    if args.format:
+        job = pool.apply_async(_worker, (args.sequence_tab, args.format, args),
+                               {"q":q})
         jobs.append(job)
+    else:
+        try:
+            for i in input_seqs:
+                logger.log(logging.DEBUG, "List of given sequences:")
+                for seq in input_seqs:
+                    logger.log(logging.DEBUG, seq[0])
+                if len(i) == 2:
+                    i.append(None)
+                job = pool.apply_async(_worker, (i[0], i[1], args),
+                                       {"q":q, "name":i[2]})
+                jobs.append(job)
+        except IndexError:
+            raise RuntimeError('File given appears to be incorrectly formatted.'\
+                               'If you are attempting to use a single sequence'\
+                               'file, remember to provide the --format argument')
 
     # get() all processes to catch errors
     for job in jobs:
