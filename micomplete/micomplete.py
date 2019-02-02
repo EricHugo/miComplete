@@ -74,6 +74,12 @@ HEADERS = {"Name": None,
            "L90": None
            }
 
+BUILTIN_MARKERS = {"Bact105": ["share/Bact105.hmm", "share/Bact105.weights"],
+                   "Arch131": ["share/Arch131.hmm", "share/Arch131.weights"]
+                  }
+
+PATH = os.path.abspath(os.path.dirname(__file__))
+
 def _worker(seqObject, seq_type, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
     base_name = base_name = ''.join(os.path.basename(seqObject).split('.')[:-1])
@@ -569,7 +575,11 @@ def main():
                 assert spawn.find_executable('hmmsearch')
             except AssertionError:
                 raise RuntimeError('Unable to find hmmsearch in path')
-
+        if args.hmms in BUILTIN_MARKERS.keys():
+            args.hmms = os.path.join(PATH, BUILTIN_MARKERS[args.hmms][0])
+        if args.weights in BUILTIN_MARKERS.keys():
+            args.weights = os.path.join(PATH, BUILTIN_MARKERS[args.weights][1])
+    
     with open(args.sequence_tab) as seq_file:
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
