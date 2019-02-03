@@ -604,10 +604,10 @@ def main():
         jobs.append(job)
     else:
         try:
+            logger.log(logging.INFO, "List of given sequences:")
+            for seq in input_seqs:
+                logger.log(logging.INFO, seq[0])
             for i in input_seqs:
-                logger.log(logging.DEBUG, "List of given sequences:")
-                for seq in input_seqs:
-                    logger.log(logging.DEBUG, seq[0])
                 if len(i) == 2:
                     i.append(None)
                 job = pool.apply_async(_worker, (i[0], i[1], args),
