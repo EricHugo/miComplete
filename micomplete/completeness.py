@@ -190,10 +190,24 @@ class calcCompleteness():
         weighted_complete = 0
         weighted_redun = 0
         for hmm in self.seen_hmms:
+            found = False
             with open(self.weights, 'r') as weights:
                 for each_weight in weights:
                     if re.match(hmm + "\s", each_weight):
                         weighted_complete += float(each_weight.split()[1])
+                        found = True
+                        break
+            if not found:
+                try:
+                    self.logger.log(logging.WARN, "Marker %s not found "\
+                                                  "in weights file." % hmm)
+                    cprint("Warning:", "red", end=' ', file=sys.stderr)
+                    print("Marker %s could not be found in weights file."
+                          % hmm, file=sys.stderr)
+                except AttributeError:
+                    cprint("Warning:", "red", end=' ', file=sys.stderr)
+                    print("Marker %s could not be found in weights file."
+                          % hmm, file=sys.stderr)
         for hmm in self.dup_hmms:
             with open(self.weights, 'r') as weights:
                 for each_weight in weights:
