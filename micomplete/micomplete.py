@@ -614,9 +614,9 @@ def main():
                                        {"q":q, "name":i[2]})
                 jobs.append(job)
         except IndexError:
-            raise RuntimeError('File given appears to be incorrectly formatted.'\
-                               'If you are attempting to use a single sequence'\
-                               'file, remember to provide the --format argument')
+            raise RuntimeError('File given appears to be incorrectly formatted. '\
+                               'If you are attempting to use a single sequence '\
+                               'file, remember to provide the --format argument.')
 
     # get() all processes to catch errors
     for job in jobs:
