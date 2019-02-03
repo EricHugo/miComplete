@@ -21,7 +21,7 @@ this program.  If not, see http://www.gnu.org/licenses/.
 
 from __future__ import print_function, division
 from distutils import spawn
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from Bio import SeqIO
 from Bio.SeqUtils import GC
 from operator import itemgetter
@@ -60,19 +60,20 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
-HEADERS = {"Name": None,
-           "Length": None,
-           "GC-content": None,
-           "Present Markers": None,
-           "Completeness": None,
-           "Redundancy": None,
-           "Weighted completeness": None,
-           "Weighted redundancy": None,
-           "N50": None,
-           "L50": None,
-           "N90": None,
-           "L90": None
-           }
+# ordered dict for <3.6 compatibility
+HEADERS = OrderedDict()
+HEADERS["Name"] = None
+HEADERS["Length"] = None
+HEADERS["GC-content"] = None
+HEADERS["Present Markers"] = None
+HEADERS["Completeness"] = None
+HEADERS["Redundancy"] = None
+HEADERS["Weighted completeness"] = None
+HEADERS["Weighted redundancy"] = None
+HEADERS["N50"] = None
+HEADERS["L50"] = None
+HEADERS["N90"] = None
+HEADERS["L90"] = None
 
 BUILTIN_MARKERS = {"Bact105": ["share/Bact105.hmm", "share/Bact105.weights"],
                    "Arch131": ["share/Arch131.hmm", "share/Arch131.weights"]
@@ -223,7 +224,11 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     else:
         headers['N50'], headers['L50'], headers['N90'], headers['L90'] = '-', '-', '-', '-'
     output.extend((headers['N50'], headers['L50'], headers['N90'], headers['L90']))
-    headers = {header: value for header, value in headers.items() if value}
+    if sys.version_info >= (3, 6):
+        headers = {header: value for header, value in headers.items() if value}
+    else:
+        headers = OrderedDict((header, value) for header, value in headers.items()
+                              if value)
     if q:
         q.put(headers)
     else:
