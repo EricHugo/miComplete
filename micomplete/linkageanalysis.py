@@ -4,11 +4,13 @@
 """Returns the relative distances between all identified hmms within
 genome"""
 
-from __future__ import print_function, division
-from collections import defaultdict
-from itertools import chain
+from __future__ import division, print_function
+
 import logging
 import re
+from collections import defaultdict
+from itertools import chain
+
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
