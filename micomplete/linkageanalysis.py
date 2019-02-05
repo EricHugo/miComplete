@@ -159,10 +159,10 @@ class linkageAnalysis():
         #print(total_distance)
         linkage_rel_vals = {hmm: [(linkVal / total_distance)]
                             for hmm, linkVal in linkage_absvals.items()}
-        for hmm, rel in linkage_rel_vals.items():
-            if rel[0] > 0.3:
-                print(rel)
-                print(self.base_name)
-                print(hmm)
+        #for hmm, rel in linkage_rel_vals.items():
+        #    if rel[0] > 0.3:
+        #        print(rel)
+        #        print(self.base_name)
+        #        print(hmm)
         #print(self.linkage_rel_vals)
         return linkage_rel_vals

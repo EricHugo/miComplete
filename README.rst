@@ -154,8 +154,8 @@ Optional arguments
    --lenient           By default miComplete drops hits with too high bias or too low best domain score. This argument disables that behaivor, permitting any hit that meets the evalue requirements.
    --no-linkage-cutoff  Disable cutoff fraction of the entire fasta which needs to be contained in a single contig in order to be included in linkage calculations. Disable this is likely to result in some erroneos calculations.
    --evalue EVALUE     Specify e-value cutoff to be used for completeness check, default=4e-10
-   --bias BIAS         Specify the bias cutoff as a fraction of score defined by hammer.
-   --domain-cutoff     Specify the largest allowed difference between best domain evalue and protein evalue.
+   --bias BIAS         Specify the bias cutoff as a fraction of score defined by hmmer.
+   --domain-cutoff CUTOFF  Specify the largest allowed difference between best domain evalue and protein evalue.
    --cutoff CUTOFF     Specify cutoff percentage of markers required to be present in genome for it be included in linkage calculat. Default = 0.9
    --threads THREADS   Specify number of threads to be used in parallel
    --log LOG           Log name (default=miComplete.log)
@@ -165,7 +165,7 @@ Optional arguments
    
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Create a sequence tab file. Here it is best to avoid relative paths unless you know you will be running miComplete from the same relative directory. A correctly formatted input tab file can be done by hand or using a small utility script included with miComplete::
+In a folder containing one or several FASTA files with '.fna' extensions, create a sequence tab file. Here it is best to avoid relative paths unless you know you will be running miComplete from the same relative directory. A correctly formatted input tab file can be done by hand or using a small utility script included with miComplete::
 
    find $(realpath .) -maxdepth 1 -type f -name "*.fna" | miCompletelist.sh > test_set.tab
 
