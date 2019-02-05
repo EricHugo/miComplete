@@ -20,6 +20,12 @@ of marker genes provided.
 miComplete is still in a state of development, bugs may be encountered. Feedback, bug reports, and feature requests are welcome through Bitbucket's
 `issue system <https://bitbucket.org/evolegiolab/micomplete/issues>`_.
 
+miComplete has been used in several publications:
+
+#. [MartijnEtAl_2015]_
+#. [SpangEtAl_2015]_
+#. [MartijnEtAl_2018]_
+
 
 Description
 --------------
@@ -42,6 +48,7 @@ Linkage
 Weights can be calculated for any given set of marker genes in miComplete. This is can be done by a user by providing a set of reference genomes (note that these need to be single contig chromosomes).
 The reference genomes can be any set that the user wishes, but as general rule the larger and more diverse number of genomes the better weights. At the end of the run a boxplot of the distribution of
 weights for all markers is produced along with a file of the relative weights to be used in future runs.
+
 
 Dependencies
 --------------
@@ -227,3 +234,13 @@ Finally we will create our own set of weights given a set of marker genes for wh
 
 Also produces a box plot (distplot.png) of the distribution of weights for each marker gene.
 
+References
+----------------
+
+.. [MartijnEtAl_2015] Martijn J, Schulz F, Zaremba-Niedzwiedzka K, Viklund J, Stepanauskas R, Andersson SG, Horn M, Guy L, Ettema TJG. Single-cell genomics of a rare environmental alphaproteobacterium provides unique insights into Rickettsiaceae evolution. ISME J. 2015 Nov;9(11):2373-85. doi: https://doi.org/10.1038/ismej.2015.46
+
+.. [SpangEtAl_2015] Spang A, Saw JH, Jørgensen SL, Zaremba-Niedzwiedzka K, Martijn J, Lind AE, van Eijk R, Schleper C, Guy L, Ettema TJG. Complex archaea that bridge the gap between prokaryotes and eukaryote. Nature. 2015 May 14;521(7551):173-179. doi: https://doi.org/10.1038/nature14447
+
+.. [MartijnEtAl_2018] Martijn J, Vosseberg J, Guy L, Offre P, Ettema TJG. Deep mitochondrial origin outside the sampled alphaproteobacteria. Nature. 2018 May;557(7703):101-105. doi: https://doi.org/10.1038/s41586-018-0059-5
+	       
+		
