@@ -73,11 +73,28 @@ Required
 - Matplotlib (>= 2.0.2) (``$ pip install matplotlib``)
 - Termcolor (>= 1.1.0) (``$ pip install termcolor``)
 
-Note: *matplotlib* as implemented requires a user interface. By default it uses *Tkinter*, which can be installed via your systems package manager. To alter backend used follow `these instructions <http://matplotlib.org/faq/usage_faq.html#what-is-a-backend>`_.
+Note: *matplotlib* as implemented requires a user interface. By default it uses *Tkinter*, which can be installed via your systems package manager. Also note that there may be a specific Tkinter for Python 2 and 3 respectively, ensure that you install the one for Python3. If you need more help, consult the `TkDocs <https://tkdocs.com/tutorial/install.html>`_. 
+To instead alter backend used follow `these instructions <http://matplotlib.org/faq/usage_faq.html#what-is-a-backend>`_.
 
 
 Installation
 --------------
+
+Python3
+^^^^^^^
+Most current distributions of GNU/Linux should have Python3.X installed natively. If your particular distribution does not have Python3 installed already, you should be able to install it
+via your distrubion's package manager (e.g. apt/yum/zypper). If not, you should consider upgrading as Python2 is being sunset 2020, but if you cannot then you can still download from Python's
+website: `here <https://www.python.org/downloads/>`_.
+
+Virtual environment
+^^^^^^^^^^^^^^^^^^^
+
+To avoid breaking system services or other projects which may depend on a specific version of some packages it can be a good idea to install miComplete and its dependencies in a virtual environment. Initilise using venv::
+
+    $ python3 -m venv micomplete
+    $ source micomplete/bin/activate
+
+Now the virtual environment is activated, and miComplete along with all its dependencies can safely be installed via pip from within the virtual environment, as shown below.
 
 Python package
 ^^^^^^^^^^^^^^^^^^^
@@ -92,6 +109,7 @@ Assuming that the python bin is in your ``$PATH``, can then be run as::
 
 Git
 ^^^^^^^^^^^^^^^^^^^
+
 1. Choose an appropriate location, e.g. your home::
 
    $ cd $HOME

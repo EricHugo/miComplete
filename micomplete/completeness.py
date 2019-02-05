@@ -189,11 +189,49 @@ class calcCompleteness():
             pass
         weighted_complete = 0
         weighted_redun = 0
+        with open(self.weights, 'r') as weights:
+            try:
+                all_weights = [(weight_set[0], float(weight_set[1]))
+                               for weight_set in
+                               (weight.split() for weight in weights)]
+            except ValueError:
+                try:
+                    self.logger.log(logging.ERROR, "Weights file appears to be "\
+                                                   "invalid. Please ensure the "\
+                                                   "correct file has been "\
+                                                   "provided.")
+                except AttributeError:
+                    pass
+                raise RuntimeError("Weights file appears to be invalid. Please "\
+                                   "ensure the correct file has been provided.")
+        if not len(all_weights) == len(self.hmm_names):
+            try:
+                self.logger.log(logging.ERROR, "Number of weights do not match "\
+                                               "number of markers. Ensure that "\
+                                               "you have selected the correct "\
+                                               "weights/markers file")
+            except AttributeError:
+                pass
+            raise RuntimeError("Mismatched weights and markers. Ensure that "\
+                               "the correct files have been given.")
         for hmm in self.seen_hmms:
-            with open(self.weights, 'r') as weights:
-                for each_weight in weights:
-                    if re.match(hmm + "\s", each_weight):
-                        weighted_complete += float(each_weight.split()[1])
+            found = False
+            for each_weight in all_weights:
+                if hmm == each_weight[0]:
+                    weighted_complete += float(each_weight[1])
+                    found = True
+                    break
+            if not found:
+                try:
+                    self.logger.log(logging.WARNING, "Marker %s not found "\
+                                                  "in weights file." % hmm)
+                    cprint("Warning:", "red", end=' ', file=sys.stderr)
+                    print("Marker %s could not be found in weights file."
+                          % hmm, file=sys.stderr)
+                except AttributeError:
+                    cprint("Warning:", "red", end=' ', file=sys.stderr)
+                    print("Marker %s could not be found in weights file."
+                          % hmm, file=sys.stderr)
         for hmm in self.dup_hmms:
             with open(self.weights, 'r') as weights:
                 for each_weight in weights:
@@ -210,6 +248,6 @@ def suspicion_check(gene_match, bias, bestdomain):
     a dubious result."""
     if float(gene_match[2]) * bias <= float(gene_match[3]) or \
             float(gene_match[4]) - float(gene_match[1]) > bestdomain:
-        cprint(gene_match, "magenta", file=sys.stderr)
+        #cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False

@@ -1,5 +1,5 @@
 include README.rst
-include test_data/*
-include share/*
+include micomplete/test_data/*
+include micomplete/share/*
 include LICENSE
 include CHANGES.txt
