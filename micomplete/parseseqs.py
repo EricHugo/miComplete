@@ -4,12 +4,15 @@
 """Gathers sequence relevant basic sequence data: length, contig
 lengths, GC-content, N50, L50, N90, L90."""
 
-from __future__ import print_function, division
-import re
+from __future__ import division, print_function
+
 import logging
+import re
+
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
+
 
 class parseSeqStats():
     def __init__(self, seq, base_name, seq_type, logger=None):
