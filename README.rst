@@ -13,7 +13,7 @@ metagenome assembled genomes (MAGs) means often working with incomplete genomes,
 able to rapidly and accurately provide the stats that describe the quality and completeness of the genomes or genomic bins of interest.
 
 miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, N- and L50, N- and L90). Further a set of marker genes
-in HMM format can be provided to also retrieve completeness and redundance of those markers in each genome. Additionally, a set of weights for the marker genes can be provided to also retrieve the
+in HMM format can be provided to also retrieve completeness and redundancy of those markers in each genome. Additionally, a set of weights for the marker genes can be provided to also retrieve the
 weighted versions of completeness and redundancy which can inform the user a bit more of the actual state completeness (see description). Alternatively, the user can calculate new weights for any given set
 of marker genes provided.
 
