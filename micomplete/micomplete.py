@@ -519,51 +519,58 @@ def main():
                 eric@hugoson.org""")
 
     parser.add_argument("sequence_tab", help="""Sequence(s) along with type (fna,
-            faa, gbk) provided in a tabular format""")
+                        faa, gbk) provided in a tabular format""")
     parser.add_argument("--lenient", action='store_true', default=False,
-            help="""By default miComplete drops hits with too high bias
-            or too low best domain score. This argument disables that behavior, 
-            permitting any hit which meet the evalue requirements.""")
+                        help="""By default miComplete drops hits with too high
+                        bias or too low best domain score. This argument disables
+                        that behavior, permitting any hit which meet the evalue
+                        requirements.""")
     parser.add_argument("--format", default=None, choices=['fna', 'faa', 'gbk'],
-            help="""This argument should be used when a single sequence file
-            is given in place of tabulated file of sequences. The argument
-            should be followed by the format of the sequence.""")
+                        help="""This argument should be used when a single
+                        sequence file is given in place of tabulated file of
+                        sequences. The argument should be followed by the format
+                        of the sequence.""")
     parser.add_argument("--hlist", required=False, default=None, type=str,
-            nargs='?', help="""Write list of Present, Absent and
-            Duplicated markers for each organism to file""")
+                        nargs='?', help="""Write list of Present, Absent and
+                        Duplicated markers for each organism to file""")
     parser.add_argument("--hmms", required=False, default=False,
-            help="""Specifies a set of HMMs to be used for completeness check
-            or linkage analysis""")
+                        help="""Specifies a set of HMMs to be used for
+                        completeness check or linkage analysis. The default sets,
+                        "Bact105" and "Arch131", can be called via their 
+                        respective names.""")
     parser.add_argument("--weights", required=False, default=False,
-            help="""Specify a set of weights for the HMMs specified,
-            (optional)""")
+                        help="""Specify a set of weights for the HMMs specified.
+                        The default sets, "Bact105" and "Arch131", can be called
+                        via their respective names.""")
     parser.add_argument("--linkage", required=False, default=False,
-            action='store_true', help="""Specifies that the provided sequences
-            should be used to calculate the weights of the provided HMMs""")
-    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True, 
-            help="Disable cutoff fraction of the entire fasta which needs to be "\
-                 "contained in a single contig in order to be included in "\
-                 "linkage calculations. Disabling this is likely to result "\
-                 "in some erroneous calculations.")
+                        action='store_true', help="""Specifies that the provided
+                        sequences should be used to calculate the weights of the
+                        provided HMMs""")
+    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True,
+                        help="""Disable cutoff fraction of the entire fasta which
+                        needs to be contained in a single contig in order to be 
+                        included in linkage calculations. Disabling this is 
+                        likely to result in some erroneous calculations.""")
     parser.add_argument("--evalue", required=False, type=float, default=4e-10,
-            help="""Specify e-value cutoff to be used for completeness check.
-            Default = 4e-10""")
+                        help="""Specify e-value cutoff to be used for
+                        completeness check. Default = 4e-10""")
     parser.add_argument("--bias", required=False, type=float, default=0.3,
-            help="""Specify bias cutoff as fraction of score as defined by
-            hmmer""")
+                        help="""Specify bias cutoff as fraction of score as
+                        defined by hmmer. Default = 0.3""")
     parser.add_argument("--domain-cutoff", type=float, default=1e-5,
-            help="""Specify largest allowed difference between full sequence-
-            and domain evalues.""")
+                        help="""Specify largest allowed difference between full
+                        sequence- and domain evalues. Default = 1e-5""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
-            help="""Specify cutoff percentage of markers required to be present
-            in genome for it be included in linkage calculation. 
-            Default = 0.9""")
+                        help="""Specify cutoff percentage of markers required
+                        to be present in genome for it be included in linkage 
+                        calculation. Default = 0.9""")
     parser.add_argument("--threads", required=False, default=1, type=int,
-            help="""Specify number of threads to be used in parallel""")
+                        help="""Specify number of threads to be used in
+                        parallel. Default = 1""")
     parser.add_argument("--log", required=False, default="miComplete.log",
-            type=str, help="""Log name (default=miComplete.log)""")
+                        type=str, help="Log name. Default=miComplete.log")
     parser.add_argument("-v", "--verbose", required=False, default=False,
-            action='store_true', help="""Enable verbose logging""")
+                        action='store_true', help="""Enable verbose logging""")
     parser.add_argument("--debug", required=False, default=False,
                         action='store_true')
     parser.add_argument("-o", "--outfile", default=None, help="Outfile "\
