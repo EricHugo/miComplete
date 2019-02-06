@@ -19,30 +19,33 @@ You should have received a copy of the GNU General Public License along with
 this program.  If not, see http://www.gnu.org/licenses/.
 """
 
-from __future__ import print_function, division
-from distutils import spawn
-from collections import defaultdict, OrderedDict
-from Bio import SeqIO
-from Bio.SeqUtils import GC
-from operator import itemgetter
-from itertools import chain
-from termcolor import cprint
-import Bio
+from __future__ import division, print_function
+
 import argparse
-import tempfile
 import logging
 import logging.handlers
-import sys
+import math
+import multiprocessing as mp
+import os
+import re
 import shutil
 import subprocess
-import math
-import re
-import os
+import sys
+import tempfile
 import threading
-import multiprocessing as mp
-import numpy as np
-import matplotlib.pyplot as plt
+from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
+from distutils import spawn
+from itertools import chain
+from operator import itemgetter
+
+import Bio
+import matplotlib.pyplot as plt
+import numpy as np
+from Bio import SeqIO
+from Bio.SeqUtils import GC
+from termcolor import cprint
+
 try:
     from statistics import median
 except ImportError:
