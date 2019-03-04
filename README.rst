@@ -159,7 +159,7 @@ Optional arguments
    --hmms HMMS         Specifies a set of HMMs to be used for completeness check or linkage analysis. The default sets, "Bact105" and "Arch131", can be called via their respective names.
    --weights WEIGHTS   Specify a set of weights for the HMMs specified. The default sets, "Bact105" and "Arch131", can be called via their respective names.
    --linkage           Specifies that the provided sequences should be used to calculate the weights of the provided HMMs
-   --lenient           By default miComplete drops hits with too high bias or too low best domain score. This argument disables that behaivor, permitting any hit that meets the evalue requirements.
+   --lenient           By default miComplete drops hits with too high bias or too low best domain score. This argument disables that behaviour, permitting any hit that meets the evalue requirements.
    --no-linkage-cutoff  Disable cutoff fraction of the entire fasta which needs to be contained in a single contig in order to be included in linkage calculations. Disable this is likely to result in some erroneous calculations.
    --evalue EVALUE     Specify e-value cutoff to be used for completeness check. Default = 4e-10
    --bias BIAS         Specify the bias cutoff as a fraction of score defined by hammer. Default = 0.3
@@ -199,7 +199,7 @@ miComplete prints result to stdout in tabular format, this can favourably be red
 
    $ miComplete test_set.tab > results.tab
 
-Alternatively, if we only have a single genome/genomic bin to investigate there is no need to create a sequence_tab file, as long as we provide the ``--format`` argument to inform miComplete of the file format to expect::
+Alternatively, if we only have a single genome/genomic bin to investigate there is no need to create a sequence_tab file, as long as we provide the ``--format`` argument to inform miComplete of what file format to expect::
 
    $ miComplete legionella_longbeachae.fna --format fna
    Name	Length	GC-content	N50	L50	N90	L90
@@ -210,14 +210,14 @@ This way of investigating a single genome is compatible with all subsequent exam
 Example 2 - Completeness
 """"""""""""""""""""""""
 
-This example will produce the same basic statistics, but also completeness and redundance::
+This example will produce the same basic statistics, but also completeness and redundancy::
 
    $ miComplete test_set.tab -c --hmms Bact105
    Name	Length	GC-content	Present Markers	Completeness	Redundancy	N50	L50	N90	L90
    legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	4077332	1	4077332	1
    coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1995488	1	1995488	1
    coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	1733840	1	1733840	1
-   
+   hac
 That is great, but the run time is starting to increase significantly primarily due to needing to translate four genomes to proteomes.
 We can speed up the process by running all four parallel with ``--threads 4``::
 
@@ -239,7 +239,7 @@ Example 4 - Creating weights
 
 Finally we will create our own set of weights given a set of marker genes for which we do not already have weights. In this example only three bacteria from the same order are used to create weights. Generally one should create weights with as a large number of well distributed (or at least as widely distributed as the data you intend to use the weights for) genomes::
 
-   $ miComplete test_set.tab -c --hmms Bact105 --linkage --threads 4 > Bact105
+   $ miComplete test_set.tab -c --hmms Bact105 --linkage --threads 4 > Bact105.weights
 
 Also produces a box plot (distplot.png) of the distribution of weights for each marker gene.
 
