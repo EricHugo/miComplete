@@ -34,7 +34,10 @@ class calcCompleteness():
         self.weights = weights
         self.logger = logger
         self.lenient = lenient
-        self.logger.log(logging.INFO, "Starting completeness for " + fasta)
+        try:
+            self.logger.log(logging.INFO, "Starting completeness for " + fasta)
+        except AttributeError:
+            pass
         self.hmm_names = set({})
         self.bias = bias
         self.best_domain = best_domain
