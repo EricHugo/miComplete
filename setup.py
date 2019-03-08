@@ -13,7 +13,7 @@ setup(name='micomplete',
         license='GNU General Public License v3 or later (G  PLv3+)',
         
         classifiers=[
-            'Development Status :: 5 - Stable',
+            'Development Status :: 5 - Production/Stable',
             'Intended Audience :: Science/Research',
             'Topic :: Scientific/Engineering :: Bio-Informatics',
             'Environment :: Console',
