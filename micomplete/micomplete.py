@@ -37,7 +37,6 @@ from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 from distutils import spawn
 from itertools import chain
-from operator import itemgetter
 
 import Bio
 import matplotlib.pyplot as plt
@@ -340,7 +339,7 @@ def _weights_writer(logger=None):
     all_bias = defaultdict(list)
     while True:
         weights_set, tmpfile = yield
-        if weights_set == "break":
+        if weights_set =="break":
             _bias_check(all_bias, logger=logger)
             continue
         for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
@@ -368,14 +367,36 @@ def weights_output(weights_file, logger=None):
             hmm_weights[weight[0]].append(float(weight[1]))
     data = []
     labels = []
+    stds = []
     median_weights = {}
+    #ln_median_weights = []
     # establish medians, also append axis data
     for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
                               reverse=True):
         median_weights[hmm] = median(weight)
+        log_weights = [np.log(each) for each in weight]
+        #print(weight)
+        #mu = np.mean(weight)
+        sigma = np.std(weight)
+        #xmu, _, sigma = stats.lognorm.fit(weight, floc=0)
+        #mu = np.log(xmu)
+        #cprint(mu, "red")
+        #cprint(sigma, "green")
+        #mu = np.mean(log_weights)
+        #sigma = np.std(log_weights)
+        #m = np.exp(mu + sigma**2 / 2.0)
+        #stds.append((np.exp(2 * mu + sigma**2) * (np.exp(sigma**2) - 1))**0.5)
+        stds.append(sigma)
+        #print(m, stds[-1])
         data.append(weight)
         labels.append(hmm)
     # calculate normalized median weights
+    ln_sq_stds = [float(sq_stds**2) for sq_stds in stds]
+    ln_sqrt_sum_stds = sum(ln_sq_stds) ** 0.5
+    #sqrt_sum_stds = np.e ** ln_sqrt_sum_stds
+    #print(ln_sq_stds)
+    print("Standrd deviation:\t" + str(ln_sqrt_sum_stds))
+    #print(sqrt_sum_stds)
     weights_sum = sum(median_weights.values())
     for hmm, median_weight in sorted(median_weights.items(), key=lambda kv: kv[1]):
         norm_weight = median_weight / weights_sum
