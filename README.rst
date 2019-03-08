@@ -217,7 +217,7 @@ This example will produce the same basic statistics, but also completeness and r
    legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	4077332	1	4077332	1
    coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1995488	1	1995488	1
    coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	1733840	1	1733840	1
-   hac
+   
 That is great, but the run time is starting to increase significantly primarily due to needing to translate four genomes to proteomes.
 We can speed up the process by running all four parallel with ``--threads 4``::
 
