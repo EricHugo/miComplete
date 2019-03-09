@@ -208,7 +208,7 @@ class calcCompleteness():
                     pass
                 raise RuntimeError("Weights file appears to be invalid. Please "
                                    "ensure the correct file has been provided.")
-        if not len(all_weights) == len(self.hmm_names):
+        if not len(all_weights) == len(self.hmm_names) + 1:
             try:
                 self.logger.log(logging.ERROR, "Number of weights do not match "
                                                "number of markers. Ensure that "
