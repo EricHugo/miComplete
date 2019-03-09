@@ -19,30 +19,32 @@ You should have received a copy of the GNU General Public License along with
 this program.  If not, see http://www.gnu.org/licenses/.
 """
 
-from __future__ import print_function, division
-from distutils import spawn
-from collections import defaultdict
-from Bio import SeqIO
-from Bio.SeqUtils import GC
-from operator import itemgetter
-from itertools import chain
-from termcolor import cprint
-import Bio
+from __future__ import division, print_function
+
 import argparse
-import tempfile
 import logging
 import logging.handlers
-import sys
+import math
+import multiprocessing as mp
+import os
+import re
 import shutil
 import subprocess
-import math
-import re
-import os
+import sys
+import tempfile
 import threading
-import multiprocessing as mp
-import numpy as np
-import matplotlib.pyplot as plt
+from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
+from distutils import spawn
+from itertools import chain
+
+import Bio
+import matplotlib.pyplot as plt
+import numpy as np
+from Bio import SeqIO
+from Bio.SeqUtils import GC
+from termcolor import cprint
+
 try:
     from statistics import median
 except ImportError:
@@ -60,19 +62,26 @@ except ImportError:
     from linkageanalysis import linkageAnalysis
     from completeness import calcCompleteness
 
-HEADERS = {"Name": None,
-           "Length": None,
-           "GC-content": None,
-           "Present Markers": None,
-           "Completeness": None,
-           "Redundancy": None,
-           "Weighted completeness": None,
-           "Weighted redundancy": None,
-           "N50": None,
-           "L50": None,
-           "N90": None,
-           "L90": None
-           }
+# ordered dict for <3.6 compatibility
+HEADERS = OrderedDict()
+HEADERS["Name"] = None
+HEADERS["Length"] = None
+HEADERS["GC-content"] = None
+HEADERS["Present Markers"] = None
+HEADERS["Completeness"] = None
+HEADERS["Redundancy"] = None
+HEADERS["Weighted completeness"] = None
+HEADERS["Weighted redundancy"] = None
+HEADERS["N50"] = None
+HEADERS["L50"] = None
+HEADERS["N90"] = None
+HEADERS["L90"] = None
+
+BUILTIN_MARKERS = {"Bact105": ["share/Bact105.hmm", "share/Bact105.weights"],
+                   "Arch131": ["share/Arch131.hmm", "share/Arch131.weights"]
+                  }
+
+PATH = os.path.abspath(os.path.dirname(__file__))
 
 def _worker(seqObject, seq_type, argv, q=None, name=None):
     seqObject = ''.join(seqObject)
@@ -86,7 +95,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         log_lvl = logging.INFO
     logger = _configure_logger(q, name, log_lvl)
     logger.log(logging.INFO, "Started work on %s" % name)
-    if argv.linkage or argv.completeness:
+    if argv.hmms:
         logger.log(logging.INFO, "Creating proteome")
         if re.match("(gb.?.?)|genbank", seq_type):
             logger.log(logging.INFO, "gbk-file, will attempt to extract"\
@@ -176,7 +185,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     else:
         fastats, headers['Length'], all_lengths, headers['GC-content'] = "-", "-", "-", "-"
     #output.extend((name, seq_length, GC))
-    if argv.completeness:
+    if argv.hmms:
         logger.log(logging.INFO, "Started completeness check")
         comp = calcCompleteness(proteome, name, argv.hmms, evalue=argv.evalue,
                                 bias=argv.bias, best_domain=argv.domain_cutoff,
@@ -217,7 +226,11 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     else:
         headers['N50'], headers['L50'], headers['N90'], headers['L90'] = '-', '-', '-', '-'
     output.extend((headers['N50'], headers['L50'], headers['N90'], headers['L90']))
-    headers = {header: value for header, value in headers.items() if value}
+    if sys.version_info >= (3, 6):
+        headers = {header: value for header, value in headers.items() if value}
+    else:
+        headers = OrderedDict((header, value) for header, value in headers.items()
+                              if value)
     if q:
         q.put(headers)
     else:
@@ -326,7 +339,7 @@ def _weights_writer(logger=None):
     all_bias = defaultdict(list)
     while True:
         weights_set, tmpfile = yield
-        if weights_set == "break":
+        if weights_set =="break":
             _bias_check(all_bias, logger=logger)
             continue
         for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
@@ -354,14 +367,36 @@ def weights_output(weights_file, logger=None):
             hmm_weights[weight[0]].append(float(weight[1]))
     data = []
     labels = []
+    stds = []
     median_weights = {}
+    #ln_median_weights = []
     # establish medians, also append axis data
     for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
                               reverse=True):
         median_weights[hmm] = median(weight)
+        log_weights = [np.log(each) for each in weight]
+        #print(weight)
+        #mu = np.mean(weight)
+        sigma = np.std(weight)
+        #xmu, _, sigma = stats.lognorm.fit(weight, floc=0)
+        #mu = np.log(xmu)
+        #cprint(mu, "red")
+        #cprint(sigma, "green")
+        #mu = np.mean(log_weights)
+        #sigma = np.std(log_weights)
+        #m = np.exp(mu + sigma**2 / 2.0)
+        #stds.append((np.exp(2 * mu + sigma**2) * (np.exp(sigma**2) - 1))**0.5)
+        stds.append(sigma)
+        #print(m, stds[-1])
         data.append(weight)
         labels.append(hmm)
     # calculate normalized median weights
+    ln_sq_stds = [float(sq_stds**2) for sq_stds in stds]
+    ln_sqrt_sum_stds = sum(ln_sq_stds) ** 0.5
+    #sqrt_sum_stds = np.e ** ln_sqrt_sum_stds
+    #print(ln_sq_stds)
+    print("Standrd deviation:\t" + str(ln_sqrt_sum_stds))
+    #print(sqrt_sum_stds)
     weights_sum = sum(median_weights.values())
     for hmm, median_weight in sorted(median_weights.items(), key=lambda kv: kv[1]):
         norm_weight = median_weight / weights_sum
@@ -508,50 +543,58 @@ def main():
                 eric@hugoson.org""")
 
     parser.add_argument("sequence_tab", help="""Sequence(s) along with type (fna,
-            faa, gbk) provided in a tabular format""")
-    parser.add_argument("-c", "--completeness", required=False, default=False,
-            action='store_true', help="""Perform completeness check (also requires
-            a set of HMMs to have been provided)""")
+                        faa, gbk) provided in a tabular format""")
     parser.add_argument("--lenient", action='store_true', default=False,
-            help="""By default miComplete drops hits with too high bias
-            or too low best domain score. This argument disables that behavior, 
-            permitting any hit that meets the evalue requirements.""")
+                        help="""By default miComplete drops hits with too high
+                        bias or too low best domain score. This argument disables
+                        that behavior, permitting any hit which meet the evalue
+                        requirements.""")
+    parser.add_argument("--format", default=None, choices=['fna', 'faa', 'gbk'],
+                        help="""This argument should be used when a single
+                        sequence file is given in place of tabulated file of
+                        sequences. The argument should be followed by the format
+                        of the sequence.""")
     parser.add_argument("--hlist", required=False, default=None, type=str,
-            nargs='?', help="""Write list of Present, Absent and
-            Duplicated markers for each organism to file""")
+                        nargs='?', help="""Write list of Present, Absent and
+                        Duplicated markers for each organism to file""")
     parser.add_argument("--hmms", required=False, default=False,
-            help="""Specifies a set of HMMs to be used for completeness check
-            or linkage analysis""")
+                        help="""Specifies a set of HMMs to be used for
+                        completeness check or linkage analysis. The default sets,
+                        "Bact105" and "Arch131", can be called via their 
+                        respective names.""")
     parser.add_argument("--weights", required=False, default=False,
-            help="""Specify a set of weights for the HMMs specified,
-            (optional)""")
+                        help="""Specify a set of weights for the HMMs specified.
+                        The default sets, "Bact105" and "Arch131", can be called
+                        via their respective names.""")
     parser.add_argument("--linkage", required=False, default=False,
-            action='store_true', help="""Specifies that the provided sequences
-            should be used to calculate the weights of the provided HMMs""")
-    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True, 
-            help="Disable cutoff fraction of the entire fasta which needs to be "\
-                 "contained in a single contig in order to be included in "\
-                 "linkage calculations. Disabling this is likely to result "\
-                 "in some erroneous calculations.")
+                        action='store_true', help="""Specifies that the provided
+                        sequences should be used to calculate the weights of the
+                        provided HMMs""")
+    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True,
+                        help="""Disable cutoff fraction of the entire fasta which
+                        needs to be contained in a single contig in order to be 
+                        included in linkage calculations. Disabling this is 
+                        likely to result in some erroneous calculations.""")
     parser.add_argument("--evalue", required=False, type=float, default=4e-10,
-            help="""Specify e-value cutoff to be used for completeness check.
-            Default = 4e-10""")
+                        help="""Specify e-value cutoff to be used for
+                        completeness check. Default = 4e-10""")
     parser.add_argument("--bias", required=False, type=float, default=0.3,
-            help="""Specify bias cutoff as fraction of score as defined by
-            hmmer""")
+                        help="""Specify bias cutoff as fraction of score as
+                        defined by hmmer. Default = 0.3""")
     parser.add_argument("--domain-cutoff", type=float, default=1e-5,
-            help="""Specify largest allowed difference between full sequence-
-            and domain evalues.""")
+                        help="""Specify largest allowed difference between full
+                        sequence- and domain evalues. Default = 1e-5""")
     parser.add_argument("--cutoff", required=False, type=float, default=0.9,
-            help="""Specify cutoff percentage of markers required to be present
-            in genome for it be included in linkage calculation. 
-            Default = 0.9""")
+                        help="""Specify cutoff percentage of markers required
+                        to be present in genome for it be included in linkage 
+                        calculation. Default = 0.9""")
     parser.add_argument("--threads", required=False, default=1, type=int,
-            help="""Specify number of threads to be used in parallel""")
+                        help="""Specify number of threads to be used in
+                        parallel. Default = 1""")
     parser.add_argument("--log", required=False, default="miComplete.log",
-            type=str, help="""Log name (default=miComplete.log)""")
+                        type=str, help="Log name. Default=miComplete.log")
     parser.add_argument("-v", "--verbose", required=False, default=False,
-            action='store_true', help="""Enable verbose logging""")
+                        action='store_true', help="""Enable verbose logging""")
     parser.add_argument("--debug", required=False, default=False,
                         action='store_true')
     parser.add_argument("-o", "--outfile", default=None, help="Outfile "\
@@ -559,7 +602,7 @@ def main():
                         "printing to stdout")
     args = parser.parse_args()
 
-    if args.completeness or args.linkage:
+    if args.hmms or args.linkage:
         try:
             assert shutil.which('hmmsearch')
         except AssertionError:
@@ -569,7 +612,11 @@ def main():
                 assert spawn.find_executable('hmmsearch')
             except AssertionError:
                 raise RuntimeError('Unable to find hmmsearch in path')
-
+        if args.hmms in BUILTIN_MARKERS.keys():
+            args.hmms = os.path.join(PATH, BUILTIN_MARKERS[args.hmms][0])
+        if args.weights in BUILTIN_MARKERS.keys():
+            args.weights = os.path.join(PATH, BUILTIN_MARKERS[args.weights][1])
+    
     with open(args.sequence_tab) as seq_file:
         input_seqs = [seq.strip().split('\t') for seq in seq_file
                       if not re.match('#|\n', seq)]
@@ -586,16 +633,26 @@ def main():
                               {"linkage":args.linkage, "logfile":args.log})
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
-    logger.log(logging.DEBUG, "List of given sequences:")
-    for seq in input_seqs:
-        logger.log(logging.DEBUG, seq[0])
     jobs = []
-    for i in input_seqs:
-        if len(i) == 2:
-            i.append(None)
-        job = pool.apply_async(_worker, (i[0], i[1], args),
-                               {"q":q, "name":i[2]})
+    if args.format:
+        job = pool.apply_async(_worker, (args.sequence_tab, args.format, args),
+                               {"q":q})
         jobs.append(job)
+    else:
+        try:
+            logger.log(logging.INFO, "List of given sequences:")
+            for seq in input_seqs:
+                logger.log(logging.INFO, seq[0])
+            for i in input_seqs:
+                if len(i) == 2:
+                    i.append(None)
+                job = pool.apply_async(_worker, (i[0], i[1], args),
+                                       {"q":q, "name":i[2]})
+                jobs.append(job)
+        except IndexError:
+            raise RuntimeError('File given appears to be incorrectly formatted. '\
+                               'If you are attempting to use a single sequence '\
+                               'file, remember to provide the --format argument.')
 
     # get() all processes to catch errors
     for job in jobs:

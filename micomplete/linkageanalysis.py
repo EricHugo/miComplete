@@ -4,11 +4,13 @@
 """Returns the relative distances between all identified hmms within
 genome"""
 
-from __future__ import print_function, division
-from collections import defaultdict
-from itertools import chain
+from __future__ import division, print_function
+
 import logging
 import re
+from collections import defaultdict
+from itertools import chain
+
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
@@ -117,18 +119,18 @@ class linkageAnalysis():
                 # nested list comprehension
                 # reads locs and compares end of current read to start of all
                 # if negative -> adds sequence length to simulate circularity
-                forward_l = [[int(each[0] - loc[1]) if int(each[0] - loc[1] > 0)
-                              else 0 if self.check_overlap(loc, each)
-                              else int(each[0] - loc[1] + self.seq_length) for
+                forward_l = [[int(each[0] - loc[1] + 1) if int(each[0] - loc[1] > 0)
+                              else 1 if self.check_overlap(loc, each)
+                              else int(each[0] - loc[1] + self.seq_length + 1) for
                               each in forw]
                              for key, forw in self.hmm_locations.items() if not
                              key == hmm]
                 # flatten list
                 forward_l_flat = list(chain.from_iterable(forward_l))
                 min_floc.append(min(forward_l_flat))
-                reverse_l = [[int(loc[0] - each[1]) if int(loc[0] - each[1] > 0)
-                              else 0 if self.check_overlap(loc, each, reverse=True)
-                              else int(loc[0] - each[1] + self.seq_length) for
+                reverse_l = [[int(loc[0] - each[1] + 1) if int(loc[0] - each[1] > 0)
+                              else 1 if self.check_overlap(loc, each, reverse=True)
+                              else int(loc[0] - each[1] + self.seq_length + 1) for
                               each in rev]
                              for key, rev in self.hmm_locations.items() if not
                              key == hmm]
@@ -153,14 +155,11 @@ class linkageAnalysis():
                            self.locs.items()}
         total_distance = sum([linkVal for hmm, linkVal in
                               linkage_absvals.items()])
-        #print(linkage_absvals)
-        #print(total_distance)
         linkage_rel_vals = {hmm: [(linkVal / total_distance)]
                             for hmm, linkVal in linkage_absvals.items()}
-        for hmm, rel in linkage_rel_vals.items():
-            if rel[0] > 0.3:
-                print(rel)
-                print(self.base_name)
-                print(hmm)
-        #print(self.linkage_rel_vals)
+        #for hmm, rel in linkage_rel_vals.items():
+        #    if rel[0] > 0.3:
+        #        print(rel)
+        #        print(self.base_name)
+        #        print(hmm)
         return linkage_rel_vals
