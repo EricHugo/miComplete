@@ -66,8 +66,8 @@ class calcCompleteness():
                                       stderr=subprocess.STDOUT)
         if errcode > 0:
             try:
-                self.logger.log(logging.WARNING, "Error thrown by HMMER, is %s empty?"
-                            % self.fasta)
+                self.logger.log(logging.WARNING, "Error thrown by HMMER, is %s"
+                                "empty?" % self.fasta)
             except AttributeError:
                 cprint("Warning:", 'red', end=' ', file=sys.stderr)
                 print("Error thrown by HMMER, is %s empty?" % self.fasta,
@@ -92,7 +92,7 @@ class calcCompleteness():
         self.seen_hmms = set()
         # gather gene name and evalue in dict by key[hmm]
         try:
-            self.logger.log(logging.INFO, "Parsing identified HMMs and "\
+            self.logger.log(logging.INFO, "Parsing identified HMMs and "
                             "corresponding evalues")
         except AttributeError:
             pass
@@ -135,7 +135,6 @@ class calcCompleteness():
         #if self.hlist and not self.linkage:
         #    self.print_hmm_lists()
         return self.filled_hmms, self.dup_hmms, self.hmm_names
-
 
     def quantify_completeness(self):
         """
@@ -198,26 +197,26 @@ class calcCompleteness():
             try:
                 all_weights = [(weight_set[0], float(weight_set[1]))
                                for weight_set in
-                               (weight.split() for weight in weights)]
+                               (weight.split('\t') for weight in weights)]
             except ValueError:
                 try:
-                    self.logger.log(logging.ERROR, "Weights file appears to be "\
-                                                   "invalid. Please ensure the "\
-                                                   "correct file has been "\
+                    self.logger.log(logging.ERROR, "Weights file appears to be "
+                                                   "invalid. Please ensure the "
+                                                   "correct file has been "
                                                    "provided.")
                 except AttributeError:
                     pass
-                raise RuntimeError("Weights file appears to be invalid. Please "\
+                raise RuntimeError("Weights file appears to be invalid. Please "
                                    "ensure the correct file has been provided.")
         if not len(all_weights) == len(self.hmm_names):
             try:
-                self.logger.log(logging.ERROR, "Number of weights do not match "\
-                                               "number of markers. Ensure that "\
-                                               "you have selected the correct "\
+                self.logger.log(logging.ERROR, "Number of weights do not match "
+                                               "number of markers. Ensure that "
+                                               "you have selected the correct "
                                                "weights/markers file")
             except AttributeError:
                 pass
-            raise RuntimeError("Mismatched weights and markers. Ensure that "\
+            raise RuntimeError("Mismatched weights and markers. Ensure that "
                                "the correct files have been given.")
         for hmm in self.seen_hmms:
             found = False
@@ -228,8 +227,8 @@ class calcCompleteness():
                     break
             if not found:
                 try:
-                    self.logger.log(logging.WARNING, "Marker %s not found "\
-                                                  "in weights file." % hmm)
+                    self.logger.log(logging.WARNING, "Marker %s not found "
+                                    "in weights file." % hmm)
                     cprint("Warning:", "red", end=' ', file=sys.stderr)
                     print("Marker %s could not be found in weights file."
                           % hmm, file=sys.stderr)
