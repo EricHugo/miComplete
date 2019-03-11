@@ -98,18 +98,18 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
     if argv.hmms:
         logger.log(logging.INFO, "Creating proteome")
         if re.match("(gb.?.?)|genbank", seq_type):
-            logger.log(logging.INFO, "gbk-file, will attempt to extract"\
+            logger.log(logging.INFO, "gbk-file, will attempt to extract"
                        "proteome from gbk")
             proteome = extract_gbk_trans(seqObject)
             # if output file is found to be empty, extract contigs and translate
             if os.stat(proteome).st_size == 0:
-                logger.log(logging.INFO, "Failed to extract proteome from"\
-                           "gbk, will extract contigs and create proteome"\
+                logger.log(logging.INFO, "Failed to extract proteome from"
+                           "gbk, will extract contigs and create proteome"
                            "using create_proteome()")
                 contigs = get_contigs_gbk(seqObject, name=name)
                 proteome = create_proteome(contigs, name)
         elif seq_type == "fna":
-            logger.log(logging.INFO, "Nucleotide fasta, will translate"\
+            logger.log(logging.INFO, "Nucleotide fasta, will translate"
                        "using create_proteome()")
             proteome = create_proteome(seqObject, name)
         elif seq_type == "faa":
@@ -125,7 +125,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         try:
             assert argv.hmms
         except (AssertionError, NameError):
-            logger.log(logging.ERROR, "No HMMs were provided, but a linkage"\
+            logger.log(logging.ERROR, "No HMMs were provided, but a linkage"
                        "calculation was requested.")
             raise NameError("A set of HMMs must be provided to calculate linkage")
         logger.log(logging.INFO, "Started completeness check")
@@ -136,7 +136,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
                                 logger=logger)
         hmm_matches, _, total_hmms = comp.get_completeness()
         if argv.hlist:
-            logger.log(logging.INFO, "Writing found/missing/duplicated marker"\
+            logger.log(logging.INFO, "Writing found/missing/duplicated marker"
                        "lists")
             comp.print_hmm_lists(directory=argv.hlist)
         try:
@@ -147,15 +147,15 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         if frac_hmm < argv.cutoff:
             perc_hmm = frac_hmm * 100
             try:
-                logger.log(logging.WARNING, "Only %i%% of markers were found in"\
+                logger.log(logging.WARNING, "Only %i%% of markers were found in"
                            "%s will not be used to calculate linkage"
                            % (perc_hmm, name))
             except AttributeError:
                 cprint("Warning:", "red", end=' ', file=sys.stderr)
-                print("%i%% of markers were found in %s, cannot be used to"\
+                print("%i%% of markers were found in %s, cannot be used to"
                         "calculate linkage" % (perc_hmm, name), file=sys.stderr)
             return
-        logger.log(logging.INFO, "Starting linkage calculations of markers in"\
+        logger.log(logging.INFO, "Starting linkage calculations of markers in"
                    "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
                                   hmm_matches, cutoff=argv.no_linkage_cutoff,
@@ -323,7 +323,7 @@ def _bias_check(all_bias, logger=None):
         total_fraction_bias = sum(bias) / len(bias)
         if total_fraction_bias > 0.5:
             try:
-                logger.log(logging.WARNING, "More than 50 of found marker %s had "\
+                logger.log(logging.WARNING, "More than 50 of found marker %s had "
                            "more 10 of score bias. Consider not using this marker"
                            % hmm)
             except AttributeError:
@@ -339,7 +339,7 @@ def _weights_writer(logger=None):
     all_bias = defaultdict(list)
     while True:
         weights_set, tmpfile = yield
-        if weights_set =="break":
+        if weights_set == "break":
             _bias_check(all_bias, logger=logger)
             continue
         for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
@@ -374,7 +374,7 @@ def weights_output(weights_file, logger=None):
     for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
                               reverse=True):
         median_weights[hmm] = median(weight)
-        log_weights = [np.log(each) for each in weight]
+        #log_weights = [np.log(each) for each in weight]
         #print(weight)
         #mu = np.mean(weight)
         sigma = np.std(weight)
@@ -597,8 +597,8 @@ def main():
                         action='store_true', help="""Enable verbose logging""")
     parser.add_argument("--debug", required=False, default=False,
                         action='store_true')
-    parser.add_argument("-o", "--outfile", default=None, help="Outfile "\
-                        "can be specified. None or \"-\" will result in "\
+    parser.add_argument("-o", "--outfile", default=None, help="Outfile "
+                        "can be specified. None or \"-\" will result in "
                         "printing to stdout")
     args = parser.parse_args()
 
@@ -622,8 +622,8 @@ def main():
                       if not re.match('#|\n', seq)]
 
     if mp.cpu_count() < args.threads:
-        raise RuntimeError('Specified number of threads are larger than the '\
-                           'number detected in the system: '\
+        raise RuntimeError('Specified number of threads are larger than the '
+                           'number detected in the system: '
                            + str(mp.cpu_count()))
     manager = mp.Manager()
     q = manager.Queue()
@@ -650,8 +650,8 @@ def main():
                                        {"q":q, "name":i[2]})
                 jobs.append(job)
         except IndexError:
-            raise RuntimeError('File given appears to be incorrectly formatted. '\
-                               'If you are attempting to use a single sequence '\
+            raise RuntimeError('File given appears to be incorrectly formatted. '
+                               'If you are attempting to use a single sequence '
                                'file, remember to provide the --format argument.')
 
     # get() all processes to catch errors
