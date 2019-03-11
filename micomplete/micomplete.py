@@ -447,7 +447,7 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     contig_n = 0
     cds_n = 0
     # compile regex to match multi-loc hits
-    loc_search = re.compile('\{(.*?)\}')
+    loc_search = re.compile('{(.*?)}')
     for record in SeqIO.parse(input_handle, "genbank"):
         for feature in record.features:
             if feature.type == "source":
@@ -498,13 +498,13 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
                     for loc in locs_list:
                         loc_str = ''.join(l for l in ''.join(loc)
                                           if l not in "[]")
-                        loc_str = re.sub('\(|\)|:', ' # ', loc_str)
+                        loc_str = re.sub(r'\(|\)|:', ' # ', loc_str)
                         loc_str = re.sub('>|<', '', loc_str)
                         output_handle.write(" # " + loc_str)
                 else:
                     loc_str = ''.join(l for l in ''.join(str(feature.location))
                                       if l not in "[]")
-                    loc_str = re.sub('\(|\)|\:', ' # ', loc_str)
+                    loc_str = re.sub(r'\(|\)|\:', ' # ', loc_str)
                     loc_str = re.sub('>|<', '', loc_str)
                     output_handle.write(" # " + loc_str)
                 output_handle.write('ID=' + str(contig_n) + '_' + str(cds_n)
