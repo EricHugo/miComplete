@@ -227,10 +227,9 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
         headers['N50'], headers['L50'], headers['N90'], headers['L90'] = '-', '-', '-', '-'
     output.extend((headers['N50'], headers['L50'], headers['N90'], headers['L90']))
     if sys.version_info >= (3, 6):
-        headers = {header: value for header, value in headers.items() if value}
+        headers = {header: value for header, value in headers.items() if not value is None}
     else:
-        headers = OrderedDict((header, value) for header, value in headers.items()
-                              if value)
+        headers = OrderedDict((header, value) for header, value in headers.items() if not value is None)
     if q:
         q.put(headers)
     else:
