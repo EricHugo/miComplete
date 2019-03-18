@@ -236,14 +236,28 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
         print(*headers.values(), sep='\t')
 
 def _configure_logger(q, name, level=logging.WARNING):
-    lq = logging.handlers.QueueHandler(q)
-    logformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    lq.setFormatter(logformatter)
+    qh = CustomQueueHandler(q)
     logger = logging.getLogger(name)
+    logformatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    qh.setFormatter(logformatter)
+    logger.addHandler(qh)
     logger.setLevel(level)
-    logger.addHandler(lq)
-    #logger.log(logging.INFO, "test")
     return logger
+
+class CustomQueueHandler(logging.handlers.QueueHandler):
+    def prepare(self, record):
+        """
+        Override prepare method of the QueueHandler to ensure same behavior
+        across python versions, respecting formatting assigned.
+        """
+        msg = self.format(record)
+        record.message = msg
+        record.msg = msg
+        record.args = None
+        record.exc_info = None
+        record.exc_text = None
+        return record
+
 
 def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log"):
     """
@@ -265,7 +279,6 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
     with _dynamic_open(out) as handle:
         while True:
             write_request = q.get()
-            #cprint(write_request, "green")
             if write_request == 'done':
                 break
             if isinstance(write_request, dict) and linkage:
