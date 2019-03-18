@@ -197,7 +197,8 @@ class calcCompleteness():
             try:
                 all_weights = [(weight_set[0], float(weight_set[1]))
                                for weight_set in
-                               (weight.split('\t') for weight in weights)]
+                               (weight.split('\t') for weight in weights)
+                                if not weight_set[0] == "Standard deviation:"]
             except ValueError:
                 try:
                     self.logger.log(logging.ERROR, "Weights file appears to be "
@@ -208,7 +209,7 @@ class calcCompleteness():
                     pass
                 raise RuntimeError("Weights file appears to be invalid. Please "
                                    "ensure the correct file has been provided.")
-        if not len(all_weights) == len(self.hmm_names) + 1:
+        if not len(all_weights) == len(self.hmm_names):
             try:
                 self.logger.log(logging.ERROR, "Number of weights do not match "
                                                "number of markers. Ensure that "
@@ -243,7 +244,10 @@ class calcCompleteness():
                         weighted_redun += float(each_weight.split()[1])
         weighted_redun = round(((weighted_redun + weighted_complete) /
                                 weighted_complete), 4)
-        weighted_complete = round(weighted_complete, 4)
+        if weighted_complete:
+            weighted_complete = round(weighted_complete, 4)
+            if not weighted_complete:
+                weighted_complete = 0.0001
         return weighted_complete, weighted_redun
 
 def suspicion_check(gene_match, bias, bestdomain):

@@ -74,7 +74,7 @@ class linkageAnalysis():
         for hmm, genes in self.hmm_matches.items():
             for gene in genes:
                 for loc in self.p_headers:
-                    if re.search(re.escape(gene[0])+"\s", loc):
+                    if re.search(re.escape(gene[0])+r"\s", loc):
                         # convert to int and append to dict[hmm]
                         self.hmm_locations[hmm].append(list(map(int,
                                                        loc.split('#')[1:3])))
