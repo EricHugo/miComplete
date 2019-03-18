@@ -268,6 +268,7 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
     tmp file.
     """
     first_result = True
+    warnings = False
     logger = _configure_logger(q, "listener", "INFO")
     if logfile:
         logtarget = open(logfile, 'w')
@@ -295,6 +296,8 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
                 handle.write('\n')
                 continue
             if isinstance(write_request, logging.LogRecord):
+                if write_request.levelname == "WARNING":
+                    warnings = True
                 logtarget.write(write_request.getMessage() + '\n')
                 continue
             logger.log(logging.WARNING, "Unhandled queue object at _listener: "
@@ -309,6 +312,10 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
         weights_tmp.close()
     except NameError:
         return
+    finally:
+        if warnings:
+            print("miComplete finished with warnings. View them in %s" % logfile,
+                  file=sys.stderr)
     return weights_file
 
 @contextmanager
