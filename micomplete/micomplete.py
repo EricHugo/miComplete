@@ -242,6 +242,7 @@ def _configure_logger(q, name, level=logging.WARNING):
     qh.setFormatter(logformatter)
     logger.addHandler(qh)
     logger.setLevel(level)
+    logger.log(logging.WARNING, "test")
     return logger
 
 class CustomQueueHandler(logging.handlers.QueueHandler):
@@ -310,11 +311,12 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
     try:
         m.send(("break", None))
         weights_tmp.close()
+        weights_output(weights_file, outfile=out)
     except NameError:
         return
     finally:
         if warnings:
-            print("miComplete finished with warnings. View them in %s" % logfile,
+            print("\nmiComplete finished with warnings. View them in %s" % logfile,
                   file=sys.stderr)
     return weights_file
 
@@ -372,11 +374,12 @@ def _weights_writer(logger=None):
         tmpfile.flush()
     return tmpfile
 
-def weights_output(weights_file, logger=None):
+def weights_output(weights_file, logger=None, outfile='-'):
     """Creates boxplot all linkage values for each marker present in
     micomplete_weights.temp file"""
     # also output weights
     # weight = median / sum(medians)
+    print(outfile)
     with open(weights_file, mode='r') as weights:
         hmm_weights = defaultdict(list)
         for weight in weights:
@@ -414,13 +417,15 @@ def weights_output(weights_file, logger=None):
     ln_sqrt_sum_stds = sum(ln_sq_stds) ** 0.5
     #sqrt_sum_stds = np.e ** ln_sqrt_sum_stds
     #print(ln_sq_stds)
-    print("Standrd deviation:\t" + str(ln_sqrt_sum_stds))
     #print(sqrt_sum_stds)
     weights_sum = sum(median_weights.values())
-    for hmm, median_weight in sorted(median_weights.items(), key=lambda kv: kv[1]):
-        norm_weight = median_weight / weights_sum
-        print(hmm + "\t" + str(norm_weight))
-    # create boxplot
+    with _dynamic_open(outfile) as out:
+        out.write("Standrd deviation:\t" + str(ln_sqrt_sum_stds))
+        for hmm, median_weight in sorted(median_weights.items(), 
+                                         key=lambda kv: kv[1]):
+            norm_weight = median_weight / weights_sum
+            out.write(hmm + "\t" + str(norm_weight))
+        # create boxplot
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
     plt.boxplot(data, vert=False, sym='+')
@@ -691,11 +696,8 @@ def main():
     logger.log(logging.INFO, "Finished work on all given sequences")
     q.put("done")
     logger.log(logging.INFO, "Waiting for listener to finish and exit")
-    weights_file = writer.get()
     pool.close()
     pool.join()
-    if args.linkage:
-        weights_output(weights_file)
     logger.info("miComplete has finished")
 
 if __name__ == "__main__":
