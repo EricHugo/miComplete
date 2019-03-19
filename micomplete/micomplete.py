@@ -421,7 +421,7 @@ def weights_output(weights_file, logger=None, outfile='-'):
     weights_sum = sum(median_weights.values())
     with _dynamic_open(outfile) as out:
         out.write("Standrd deviation:\t" + str(ln_sqrt_sum_stds))
-        for hmm, median_weight in sorted(median_weights.items(), 
+        for hmm, median_weight in sorted(median_weights.items(),
                                          key=lambda kv: kv[1]):
             norm_weight = median_weight / weights_sum
             out.write(hmm + "\t" + str(norm_weight))
@@ -654,13 +654,13 @@ def main():
     pool = mp.Pool(processes=args.threads + 1)
     logger = _configure_logger(q, "main", "DEBUG")
     writer = pool.apply_async(_listener, (q, args.outfile),
-                              {"linkage":args.linkage, "logfile":args.log})
+                              {"linkage": args.linkage, "logfile": args.log})
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     jobs = []
     if args.format:
         job = pool.apply_async(_worker, (args.sequence_tab, args.format, args),
-                               {"q":q})
+                               {"q": q})
         jobs.append(job)
     else:
         try:
@@ -671,7 +671,7 @@ def main():
                 if len(i) == 2:
                     i.append(None)
                 job = pool.apply_async(_worker, (i[0], i[1], args),
-                                       {"q":q, "name":i[2]})
+                                       {"q": q, "name": i[2]})
                 jobs.append(job)
         except IndexError:
             raise RuntimeError('File given appears to be incorrectly formatted. '
