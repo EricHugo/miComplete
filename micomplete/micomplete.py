@@ -54,6 +54,10 @@ try:
 except ImportError:
     import Queue as queue
 try:
+    from micomplete import __version__
+except ImportError:
+    __version__ = "1.0rc2"
+try:
     from micomplete import parseSeqStats
     from micomplete import linkageAnalysis
     from micomplete import calcCompleteness
@@ -246,7 +250,6 @@ def _configure_logger(q, name, level=logging.WARNING):
     qh.setFormatter(logformatter)
     logger.addHandler(qh)
     logger.setLevel(level)
-    logger.log(logging.WARNING, "test")
     return logger
 
 class CustomQueueHandler(logging.handlers.QueueHandler):
@@ -264,7 +267,8 @@ class CustomQueueHandler(logging.handlers.QueueHandler):
         return record
 
 
-def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log"):
+def _listener(q, out=None, weights=None, linkage=False, logger=None, 
+              logfile="miComplete.log"):
     """
     Function responsible for outputting information in a thread safe manner.
     Recieves write requests from Queue and writes different targets depending
@@ -283,6 +287,15 @@ def _listener(q, out=None, linkage=False, logger=None, logfile="miComplete.log")
         m = _weights_writer()
         next(m)
     with _dynamic_open(out) as handle:
+        # write comment headers before listening
+        handle.write("## miComplete\n## v%s\n" % __version__)
+        try:
+            with open(weights) as weight:
+                w_std = weight.readline()
+                handle.write("## Weights:\t%s\n## Weights %s"
+                             % (weights, w_std))
+        except TypeError:
+            pass
         while True:
             write_request = q.get()
             if write_request == 'done':
@@ -590,7 +603,7 @@ def main():
                         completeness check or linkage analysis. The default sets,
                         "Bact105" and "Arch131", can be called via their 
                         respective names.""")
-    parser.add_argument("--weights", required=False, default=False,
+    parser.add_argument("--weights", required=False, default=None,
                         help="""Specify a set of weights for the HMMs specified.
                         The default sets, "Bact105" and "Arch131", can be called
                         via their respective names.""")
@@ -658,7 +671,8 @@ def main():
     pool = mp.Pool(processes=args.threads + 1)
     logger = _configure_logger(q, "main", "DEBUG")
     writer = pool.apply_async(_listener, (q, args.outfile),
-                              {"linkage": args.linkage, "logfile": args.log})
+                              {"weights": args.weights, "linkage": args.linkage,
+                               "logfile": args.log})
     logger.log(logging.INFO, "miComplete has started")
     logger.log(logging.INFO, "Using %i thread(s)" % args.threads)
     jobs = []
