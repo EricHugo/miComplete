@@ -108,6 +108,10 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
                            "using create_proteome()")
                 contigs = get_contigs_gbk(seqObject, name=name)
                 proteome = create_proteome(contigs, name)
+                if os.stat(proteome).st_size == 0:
+                    logger.log(logging.WARN, "Unable to extract either"
+                               "proteins or contigs from genbank file."
+                               "Check for file integrity")
         elif seq_type == "fna":
             logger.log(logging.INFO, "Nucleotide fasta, will translate"
                        "using create_proteome()")
