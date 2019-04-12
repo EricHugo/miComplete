@@ -413,7 +413,7 @@ def weights_output(weights_file, logger=None, outfile='-'):
     for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
                               reverse=True):
         median_weights[hmm] = median(weight)
-        #log_weights = [np.log(each) for each in weight]
+        log_weights = [np.log(each) for each in weight]
         #print(weight)
         #mu = np.mean(weight)
         sigma = np.std(weight)
@@ -427,7 +427,7 @@ def weights_output(weights_file, logger=None, outfile='-'):
         #stds.append((np.exp(2 * mu + sigma**2) * (np.exp(sigma**2) - 1))**0.5)
         stds.append(sigma)
         #print(m, stds[-1])
-        data.append(weight)
+        data.append(log_weights)
         labels.append(hmm)
     # calculate normalized median weights
     ln_sq_stds = [float(sq_stds**2) for sq_stds in stds]
@@ -443,19 +443,28 @@ def weights_output(weights_file, logger=None, outfile='-'):
             norm_weight = median_weight / weights_sum
             out.write(hmm + "\t" + str(norm_weight) + '\n')
     # create boxplot
-    plt.style.use('ggplot')
+    plt.style.use('seaborn')
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
-    ax.set_aspect(0.005)
-    plt.violinplot(data, vert=False, showmedians=True, widths=1, points=24, bw_method='silverman')
+    ax.set_aspect(0.2)
+    parts = plt.violinplot(data, vert=False, showmedians=True, widths=1.0, bw_method='scott')
+    for pc in parts['bodies']:
+        pc.set_alpha(1)
+    medians = []
+    for dataset in data:
+        medians.append(np.median(dataset))
+    print(medians)
+    inds = np.arange(1, len(medians) + 1)
+    print(inds)
+    ax.scatter(medians, inds, marker='|', color='orange', s=30, zorder=3)
     ax.set_yticks(np.arange(1, len(labels) + 1))
     ax.set_yticklabels(labels, fontsize=6)
     ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey',
                   alpha=0.5)
-    ax.set_xlabel('Relative linkage distance')
+    ax.set_xlabel('Relative linkage distance (log)')
     ax.set_ylabel('Markers')
     plt.show()
-    #plt.savefig("distplot.png", format="png", dpi=200)
+    #plt.savefig("distplot.png", format="png", dpi=800)
 
 def create_proteome(fasta, base_name=None, logger=None):
     """Create proteome from given .fna file, returns proteome filename"""
