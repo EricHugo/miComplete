@@ -437,21 +437,25 @@ def weights_output(weights_file, logger=None, outfile='-'):
     #print(sqrt_sum_stds)
     weights_sum = sum(median_weights.values())
     with _dynamic_open(outfile) as out:
-        out.write("Standrd deviation:\t" + str(ln_sqrt_sum_stds))
+        out.write("Standrd deviation:\t" + str(ln_sqrt_sum_stds) + '\n')
         for hmm, median_weight in sorted(median_weights.items(),
                                          key=lambda kv: kv[1]):
             norm_weight = median_weight / weights_sum
-            out.write(hmm + "\t" + str(norm_weight))
-        # create boxplot
+            out.write(hmm + "\t" + str(norm_weight) + '\n')
+    # create boxplot
+    plt.style.use('ggplot')
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
-    plt.boxplot(data, vert=False, sym='+')
+    ax.set_aspect(0.005)
+    plt.violinplot(data, vert=False, showmedians=True, widths=1, points=24, bw_method='silverman')
+    ax.set_yticks(np.arange(1, len(labels) + 1))
     ax.set_yticklabels(labels, fontsize=6)
     ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey',
                   alpha=0.5)
     ax.set_xlabel('Relative linkage distance')
     ax.set_ylabel('Markers')
-    plt.savefig("distplot.png", format="png", dpi=200)
+    plt.show()
+    #plt.savefig("distplot.png", format="png", dpi=200)
 
 def create_proteome(fasta, base_name=None, logger=None):
     """Create proteome from given .fna file, returns proteome filename"""
