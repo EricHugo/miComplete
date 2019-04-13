@@ -413,7 +413,7 @@ def weights_output(weights_file, logger=None, outfile='-'):
     for hmm, weight in sorted(hmm_weights.items(), key=lambda kv: median(kv[1]),
                               reverse=True):
         median_weights[hmm] = median(weight)
-        log_weights = [np.log(each) for each in weight]
+        log_weights = [np.log10(each) for each in weight]
         #print(weight)
         #mu = np.mean(weight)
         sigma = np.std(weight)
@@ -436,26 +436,27 @@ def weights_output(weights_file, logger=None, outfile='-'):
     #print(ln_sq_stds)
     #print(sqrt_sum_stds)
     weights_sum = sum(median_weights.values())
+    norm_weights = []
     with _dynamic_open(outfile) as out:
         out.write("Standrd deviation:\t" + str(ln_sqrt_sum_stds) + '\n')
         for hmm, median_weight in sorted(median_weights.items(),
                                          key=lambda kv: kv[1]):
             norm_weight = median_weight / weights_sum
+            norm_weights.append(np.log10(norm_weight))
             out.write(hmm + "\t" + str(norm_weight) + '\n')
     # create boxplot
     plt.style.use('seaborn')
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
-    ax.set_aspect(0.2)
+    ax.set_aspect(0.06)
     parts = plt.violinplot(data, vert=False, showmedians=True, widths=1.0, bw_method='scott')
     for pc in parts['bodies']:
         pc.set_alpha(1)
     medians = []
     for dataset in data:
         medians.append(np.median(dataset))
-    print(medians)
     inds = np.arange(1, len(medians) + 1)
-    print(inds)
+    ax.scatter(norm_weights[::-1], inds, marker='|', color='red', s=30, zorder=3)
     ax.scatter(medians, inds, marker='|', color='orange', s=30, zorder=3)
     ax.set_yticks(np.arange(1, len(labels) + 1))
     ax.set_yticklabels(labels, fontsize=6)
