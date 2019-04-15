@@ -284,7 +284,7 @@ def _listener(q, out=None, weights=None, linkage=False, logger=None,
     if linkage:
         weights_file = "micomplete_weights.temp"
         weights_tmp = open(weights_file, mode='w+')
-        m = _weights_writer()
+        m = _weights_writer(logger)
         next(m)
     with _dynamic_open(out) as handle:
         # write comment headers before listening
@@ -382,7 +382,6 @@ def _weights_writer(logger=None):
             continue
         for hmm, match in sorted(weights_set.items(), key=lambda e: e[1],
                                  reverse=True):
-            #print(match)
             {all_bias[hmm].append(1) if float(stats[3]) / float(stats[2]) > 0.1
              else all_bias[hmm].append(0) for stats in match[1]}
             weight = (str(hmm) + '\t' + str(match[0]) + '\n')
@@ -396,7 +395,6 @@ def weights_output(weights_file, logger=None, outfile='-'):
     micomplete_weights.temp file"""
     # also output weights
     # weight = median / sum(medians)
-    print(outfile)
     with open(weights_file, mode='r') as weights:
         hmm_weights = defaultdict(list)
         for weight in weights:
@@ -414,27 +412,21 @@ def weights_output(weights_file, logger=None, outfile='-'):
                               reverse=True):
         median_weights[hmm] = median(weight)
         log_weights = [np.log10(each) for each in weight]
-        #print(weight)
         #mu = np.mean(weight)
         sigma = np.std(weight)
         #xmu, _, sigma = stats.lognorm.fit(weight, floc=0)
         #mu = np.log(xmu)
-        #cprint(mu, "red")
-        #cprint(sigma, "green")
         #mu = np.mean(log_weights)
         #sigma = np.std(log_weights)
         #m = np.exp(mu + sigma**2 / 2.0)
         #stds.append((np.exp(2 * mu + sigma**2) * (np.exp(sigma**2) - 1))**0.5)
         stds.append(sigma)
-        #print(m, stds[-1])
         data.append(log_weights)
         labels.append(hmm)
     # calculate normalized median weights
     ln_sq_stds = [float(sq_stds**2) for sq_stds in stds]
     ln_sqrt_sum_stds = sum(ln_sq_stds) ** 0.5
     #sqrt_sum_stds = np.e ** ln_sqrt_sum_stds
-    #print(ln_sq_stds)
-    #print(sqrt_sum_stds)
     weights_sum = sum(median_weights.values())
     norm_weights = []
     with _dynamic_open(outfile) as out:
@@ -444,11 +436,11 @@ def weights_output(weights_file, logger=None, outfile='-'):
             norm_weight = median_weight / weights_sum
             norm_weights.append(np.log10(norm_weight))
             out.write(hmm + "\t" + str(norm_weight) + '\n')
-    # create boxplot
+    # create violinplot
     plt.style.use('seaborn')
     fig = plt.figure(1, figsize=(9, 6))
     ax = fig.add_subplot(111)
-    ax.set_aspect(0.06)
+    ax.set_aspect('auto')
     parts = plt.violinplot(data, vert=False, showmedians=True, widths=1.0, bw_method='scott')
     for pc in parts['bodies']:
         pc.set_alpha(1)
