@@ -250,6 +250,7 @@ class calcCompleteness():
                 weighted_complete = 0.0001
         return weighted_complete, weighted_redun
 
+
 def suspicion_check(gene_match, bias, bestdomain):
     """Check if bias is in the same order of magnitude as the match
     and if the evalue for the best domain is high. Both indicating

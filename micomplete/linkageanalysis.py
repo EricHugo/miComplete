@@ -53,7 +53,6 @@ class linkageAnalysis():
         with open(self.proteome) as prot_file:
             self.p_headers = set(header for header in prot_file
                                  if re.search("^>", header))
-            #print(self.p_headers)
 
     def get_locations(self):
         """Get locations or start and stop for each matched produced by
@@ -114,7 +113,6 @@ class linkageAnalysis():
         for hmm, locs in self.hmm_locations.items():
             min_floc = []
             min_rloc = []
-            #print(hmm)
             for loc in locs:
                 # nested list comprehension
                 # reads locs and compares end of current read to start of all
@@ -138,7 +136,6 @@ class linkageAnalysis():
                 min_rloc.append(min(reverse_l_flat))
             self.locs[hmm].append(min(min_floc))
             self.locs[hmm].append(min(min_rloc))
-            #print(self.locs[hmm])
         return self.locs
 
     def calculate_linkage_scores(self):
@@ -157,9 +154,4 @@ class linkageAnalysis():
                               linkage_absvals.items()])
         linkage_rel_vals = {hmm: [(linkVal / total_distance)]
                             for hmm, linkVal in linkage_absvals.items()}
-        #for hmm, rel in linkage_rel_vals.items():
-        #    if rel[0] > 0.3:
-        #        print(rel)
-        #        print(self.base_name)
-        #        print(hmm)
         return linkage_rel_vals

@@ -177,6 +177,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         return linkage_vals
     _compile_results(seq_type, name, argv, proteome, seqstats, q, logger)
 
+
 def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
                      logger=None):
     """
@@ -243,6 +244,7 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     else:
         print(*headers.values(), sep='\t')
 
+
 def _configure_logger(q, name, level=logging.WARNING):
     qh = CustomQueueHandler(q)
     logger = logging.getLogger(name)
@@ -251,6 +253,7 @@ def _configure_logger(q, name, level=logging.WARNING):
     logger.addHandler(qh)
     logger.setLevel(level)
     return logger
+
 
 class CustomQueueHandler(logging.handlers.QueueHandler):
     def prepare(self, record):
@@ -337,6 +340,7 @@ def _listener(q, out=None, weights=None, linkage=False, logger=None,
                   file=sys.stderr)
     return weights_file
 
+
 @contextmanager
 def _dynamic_open(outfile='-'):
     """Dynamically opens file or stdout depending on argument.
@@ -356,6 +360,7 @@ def _dynamic_open(outfile='-'):
         if handle is not sys.stdout:
             handle.close()
 
+
 def _bias_check(all_bias, logger=None):
     for hmm, bias in all_bias.items():
         total_fraction_bias = sum(bias) / len(bias)
@@ -370,6 +375,7 @@ def _bias_check(all_bias, logger=None):
                       (0.5 * 100, 0.1 * 100), file=sys.stderr, end=' ')
                 print("score bias in marker %s. Consider not using this marker." %
                       hmm, file=sys.stderr)
+
 
 def _weights_writer(logger=None):
     """Coroutine to main _listener process for sets of hmm weights. Once all
@@ -389,6 +395,7 @@ def _weights_writer(logger=None):
         tmpfile.write('-\n')
         tmpfile.flush()
     return tmpfile
+
 
 def weights_output(weights_file, logger=None, outfile='-'):
     """Creates boxplot all linkage values for each marker present in
@@ -459,6 +466,7 @@ def weights_output(weights_file, logger=None, outfile='-'):
     plt.show()
     #plt.savefig("distplot.png", format="png", dpi=800)
 
+
 def create_proteome(fasta, base_name=None, logger=None):
     """Create proteome from given .fna file, returns proteome filename"""
     try:
@@ -480,6 +488,7 @@ def create_proteome(fasta, base_name=None, logger=None):
         subprocess.call(['prodigal', '-i', fasta, '-a', prot_filename],
                         stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
     return prot_filename
+
 
 def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     """Extract translated sequences from given GeneBank file and out to given
@@ -563,6 +572,7 @@ def extract_gbk_trans(gbkfile, outfile=None, logger=None):
     output_handle.close()
     return outfile
 
+
 def get_contigs_gbk(gbk, name=None):
     """Extracts all sequences from gbk file, returns filename"""
     handle = open(gbk, mode='r')
@@ -574,6 +584,7 @@ def get_contigs_gbk(gbk, name=None):
         out_handle.write(str(seq.seq) + "\n")
     out_handle.close()
     return name
+
 
 def main():
     if sys.version_info < (3, 4):
