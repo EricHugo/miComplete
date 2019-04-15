@@ -56,7 +56,7 @@ except ImportError:
 try:
     from micomplete import __version__
 except ImportError:
-    __version__ = "1.0rc2"
+    __version__ = "1.0.0"
 try:
     from micomplete import parseSeqStats
     from micomplete import linkageAnalysis
@@ -655,11 +655,17 @@ def main():
                         action='store_true', help="""Enable verbose logging""")
     parser.add_argument("--debug", required=False, default=False,
                         action='store_true')
+    parser.add_argument("--version", required=False, default=False,
+                        action='store_true', help="Returns miComplete version "
+                        "and exits")
     parser.add_argument("-o", "--outfile", default=None, help="Outfile "
                         "can be specified. None or \"-\" will result in "
                         "printing to stdout")
     args = parser.parse_args()
 
+    if args.version:
+        print("miComplete v%s" % __version__)
+        sys.exit()
     if args.hmms or args.linkage:
         try:
             assert shutil.which('hmmsearch')
