@@ -46,7 +46,7 @@ that attempts to factor in how closely the provided marker genes typically assoc
 Linkage
 """""""""""""""""
 Weights can be calculated for any given set of marker genes in miComplete. This is can be done by a user by providing a set of reference genomes (note that these need to be single contig chromosomes).
-The reference genomes can be any set that the user wishes, but as general rule the larger and more diverse number of genomes the better weights. At the end of the run a boxplot of the distribution of
+The reference genomes can be any set that the user wishes, but as general rule the larger and more diverse number of genomes the better weights. At the end of the run a violin plot of the distribution of
 weights for all markers is produced along with a file of the relative weights to be used in future runs.
 
 
@@ -169,6 +169,7 @@ Optional arguments
    --log LOG           Log name. Default = miComplete.log
    -v, --verbose       Enable verbose logging.
    --debug             Debug logging.
+   --version           Returns miComplete version and exits
    -o, --outfile OUTFILE    Name of outfile can be specified with this argument. By default prints to stdout.
    
 Examples
@@ -212,7 +213,7 @@ Example 2 - Completeness
 
 This example will produce the same basic statistics, but also completeness and redundancy::
 
-   $ miComplete test_set.tab -c --hmms Bact105
+   $ miComplete test_set.tab --hmms Bact105
    Name	Length	GC-content	Present Markers	Completeness	Redundancy	N50	L50	N90	L90
    legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	4077332	1	4077332	1
    coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1995488	1	1995488	1
@@ -221,14 +222,14 @@ This example will produce the same basic statistics, but also completeness and r
 That is great, but the run time is starting to increase significantly primarily due to needing to translate four genomes to proteomes.
 We can speed up the process by running all four parallel with ``--threads 4``::
 
-   $ miComplete test_set.tab -c --hmms Bact105 --threads 4 > results.tab
+   $ miComplete test_set.tab --hmms Bact105 --threads 4 > results.tab
    
 Example 3 - Weighted completeness
 """"""""""""""""""""""""""""""""""
 
 This example will also produce the weighted completeness::
 
-   $ miComplete test_set.tab -c --hmms Bact105 --weights Bact105
+   $ miComplete test_set.tab --hmms Bact105 --weights Bact105
    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Weighted completeness	Weighted redundancy	N50	L50	N90	L90
    legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	1.0	1.0151	4077332	1	4077332	1
    coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1.0	1.0	1995488	1	1995488	1
@@ -239,9 +240,9 @@ Example 4 - Creating weights
 
 Finally we will create our own set of weights given a set of marker genes for which we do not already have weights. In this example only three bacteria from the same order are used to create weights. Generally one should create weights with as a large number of well distributed (or at least as widely distributed as the data you intend to use the weights for) genomes::
 
-   $ miComplete test_set.tab -c --hmms Bact105 --linkage --threads 4 > Bact105.weights
+   $ miComplete test_set.tab --hmms Bact105 --linkage --threads 4 > Bact105.weights
 
-Also produces a box plot (distplot.png) of the distribution of weights for each marker gene.
+Also produces a violin plot of the distribution of weights for each marker gene.
 
 References
 ----------------
