@@ -4,7 +4,7 @@ with open('README.rst', mode='r') as f:
     l_description = f.read()
 
 setup(name='micomplete',
-        version='1.0.0rc2',
+        version='1.0.0',
         description='Quality control of assembled genomes',
         long_description=l_description,
         url='https://bitbucket.org/evolegiolab/micomplete',
