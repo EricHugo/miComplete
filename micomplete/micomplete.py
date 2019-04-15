@@ -437,7 +437,7 @@ def weights_output(weights_file, logger=None, outfile='-'):
     weights_sum = sum(median_weights.values())
     norm_weights = []
     with _dynamic_open(outfile) as out:
-        out.write("Standrd deviation:\t" + str(ln_sqrt_sum_stds) + '\n')
+        out.write("Standard deviation:\t" + str(ln_sqrt_sum_stds) + '\n')
         for hmm, median_weight in sorted(median_weights.items(),
                                          key=lambda kv: kv[1]):
             norm_weight = median_weight / weights_sum
