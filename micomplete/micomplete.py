@@ -598,7 +598,8 @@ def main():
             """,
         epilog="""Report issues and bugs to the issue tracker at
                 https://bitbucket.org/evolegiolab/micomplete or directly to 
-                eric@hugoson.org""")
+                eric@hugoson.org""",
+        prog='miComplete')
 
     parser.add_argument("sequence_tab", help="""Sequence(s) along with type (fna,
                         faa, gbk) provided in a tabular format""")
@@ -655,17 +656,14 @@ def main():
                         action='store_true', help="""Enable verbose logging""")
     parser.add_argument("--debug", required=False, default=False,
                         action='store_true')
-    parser.add_argument("--version", required=False, default=False,
-                        action='store_true', help="Returns miComplete version "
-                        "and exits")
+    parser.add_argument("--version", default=False, action='version',
+                        version='%(prog)s {version}'.format(version=__version__), 
+                        help="Returns miComplete version and exits")
     parser.add_argument("-o", "--outfile", default=None, help="Outfile "
                         "can be specified. None or \"-\" will result in "
                         "printing to stdout")
     args = parser.parse_args()
 
-    if args.version:
-        print("miComplete v%s" % __version__)
-        sys.exit()
     if args.hmms or args.linkage:
         try:
             assert shutil.which('hmmsearch')
