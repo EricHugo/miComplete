@@ -101,36 +101,37 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         log_lvl = logging.INFO
     logger = _configure_logger(q, name, log_lvl)
     logger.log(logging.INFO, "Started work on %s" % name)
-    if argv.hmms:
-        logger.log(logging.INFO, "Creating proteome")
-        if re.match("(gb.?.?)|genbank", seq_type):
-            logger.log(logging.INFO, "gbk-file, will attempt to extract"
-                       "proteome from gbk")
-            proteome = extract_gbk_trans(seqObject)
-            # if output file is found to be empty, extract contigs and translate
-            if os.stat(proteome).st_size == 0:
-                logger.log(logging.INFO, "Failed to extract proteome from"
-                           "gbk, will extract contigs and create proteome"
-                           "using create_proteome()")
-                contigs = get_contigs_gbk(seqObject, name=name)
-                proteome = create_proteome(contigs, name)
-                if os.stat(proteome).st_size == 0:
-                    logger.log(logging.WARN, "Unable to extract either"
-                               "proteins or contigs from genbank file."
-                               "Check for file integrity")
-        elif seq_type == "fna":
-            logger.log(logging.INFO, "Nucleotide fasta, will translate"
+    logger.log(logging.INFO, "Creating proteome")
+    if re.match("(gb.?.?)|genbank", seq_type):
+        logger.log(logging.INFO, "gbk-file, will attempt to extract"
+                   "proteome from gbk")
+        proteome = extract_gbk_trans(seqObject)
+        # if output file is found to be empty, extract contigs and translate
+        if os.stat(proteome).st_size == 0:
+            logger.log(logging.INFO, "Failed to extract proteome from"
+                       "gbk, will extract contigs and create proteome"
                        "using create_proteome()")
-            proteome = create_proteome(seqObject, name)
-        elif seq_type == "faa":
-            logger.log(logging.INFO, "Type is amino acid fasta already")
-            proteome = seqObject
-    else:
-        proteome = False
+            contigs = get_contigs_gbk(seqObject, name=name)
+            proteome = create_proteome(contigs, name)
+            if os.stat(proteome).st_size == 0:
+                logger.log(logging.WARN, "Unable to extract either"
+                           "proteins or contigs from genbank file."
+                           "Check for file integrity")
+    elif seq_type == "fna":
+        logger.log(logging.INFO, "Nucleotide fasta, will translate"
+                   "using create_proteome()")
+        proteome = create_proteome(seqObject, name)
+    elif seq_type == "faa":
+        logger.log(logging.INFO, "Type is amino acid fasta already")
+        proteome = seqObject
     logger.log(logging.INFO, "Gathering stats for sequence")
     fastats = parseSeqStats(seqObject, name, seq_type, logger=logger)
     seq_length, contigs, GCcontent = fastats.get_length()
-    seqstats = (fastats, seq_length, contigs, GCcontent)
+    try:
+        cds = len(fastats.get_cds(proteome))
+    except TypeError:
+        cds = "-"
+    seqstats = (fastats, seq_length, contigs, GCcontent, cds)
     if argv.linkage:
         try:
             assert argv.hmms
@@ -190,9 +191,10 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     output = []
     headers = HEADERS
     headers['Name'] = name
+    headers['CDs'] = seqstats[4]
     if not seq_type == 'faa':
         logger.log(logging.INFO, "Gathering nucleotide sequence stats")
-        fastats, headers['Length'], headers['Contigs'], headers['GC-content'] = seqstats
+        fastats, headers['Length'], headers['Contigs'], headers['GC-content'], _ = seqstats
     else:
         fastats, headers['Length'], headers['Contigs'], headers['GC-content'] = "-", "-", "-", "-"
     #output.extend((name, seq_length, GC))
