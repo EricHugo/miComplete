@@ -81,3 +81,11 @@ class parseSeqStats():
         seq_length = sum(all_lengths)
         return seq_length, len(all_lengths), gc_content
 
+    def get_cds(self, proteome=None):
+        if proteome:
+            cds = [cd.seq for cd in SeqIO.parse(proteome, "fasta")]
+        elif self.seq_type == "faa":
+            cds = self.seq_fasta
+        else:
+            cds = None
+        return cds
