@@ -79,4 +79,5 @@ class parseSeqStats():
             # implement memory-efficient method here
             gc_content = round(GC(''.join(str(total_fasta))), 2)
         seq_length = sum(all_lengths)
-        return seq_length, all_lengths, gc_content
+        return seq_length, len(all_lengths), gc_content
+
