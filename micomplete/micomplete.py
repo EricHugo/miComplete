@@ -76,6 +76,8 @@ HEADERS["Completeness"] = None
 HEADERS["Redundancy"] = None
 HEADERS["Weighted completeness"] = None
 HEADERS["Weighted redundancy"] = None
+HEADERS["Contigs"] = None
+HEADERS["CDs"] = None
 HEADERS["N50"] = None
 HEADERS["L50"] = None
 HEADERS["N90"] = None
@@ -127,8 +129,8 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         proteome = False
     logger.log(logging.INFO, "Gathering stats for sequence")
     fastats = parseSeqStats(seqObject, name, seq_type, logger=logger)
-    seq_length, all_lengths, GCcontent = fastats.get_length()
-    seqstats = (fastats, seq_length, all_lengths, GCcontent)
+    seq_length, contigs, GCcontent = fastats.get_length()
+    seqstats = (fastats, seq_length, contigs, GCcontent)
     if argv.linkage:
         try:
             assert argv.hmms
@@ -190,9 +192,9 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     headers['Name'] = name
     if not seq_type == 'faa':
         logger.log(logging.INFO, "Gathering nucleotide sequence stats")
-        fastats, headers['Length'], all_lengths, headers['GC-content'] = seqstats
+        fastats, headers['Length'], headers['Contigs'], headers['GC-content'] = seqstats
     else:
-        fastats, headers['Length'], all_lengths, headers['GC-content'] = "-", "-", "-", "-"
+        fastats, headers['Length'], headers['Contigs'], headers['GC-content'] = "-", "-", "-", "-"
     #output.extend((name, seq_length, GC))
     if argv.hmms:
         logger.log(logging.INFO, "Started completeness check")
