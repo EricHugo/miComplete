@@ -10,7 +10,6 @@ import logging
 import re
 
 from Bio import SeqIO
-from Bio.Seq import Seq
 from Bio.SeqUtils import GC
 
 

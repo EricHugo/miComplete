@@ -11,13 +11,11 @@ set of HMM makers, in so far as it runs HMMer and parses the output.
 from __future__ import division, print_function
 
 import logging
-import math
 import os
 import re
 import subprocess
 import sys
 from collections import defaultdict
-
 
 
 class calcCompleteness():
