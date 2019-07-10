@@ -18,7 +18,6 @@ import subprocess
 import sys
 from collections import defaultdict
 
-from termcolor import cprint
 
 
 class calcCompleteness():
@@ -69,7 +68,7 @@ class calcCompleteness():
                 self.logger.log(logging.WARNING, "Error thrown by HMMER, is %s"
                                 "empty?" % self.fasta)
             except AttributeError:
-                cprint("Warning:", 'red', end=' ', file=sys.stderr)
+                print("Warning:", end=' ', file=sys.stderr)
                 print("Error thrown by HMMER, is %s empty?" % self.fasta,
                       file=sys.stderr)
         return self.tblout, errcode
@@ -230,11 +229,11 @@ class calcCompleteness():
                 try:
                     self.logger.log(logging.WARNING, "Marker %s not found "
                                     "in weights file." % hmm)
-                    cprint("Warning:", "red", end=' ', file=sys.stderr)
+                    print("Warning:", end=' ', file=sys.stderr)
                     print("Marker %s could not be found in weights file."
                           % hmm, file=sys.stderr)
                 except AttributeError:
-                    cprint("Warning:", "red", end=' ', file=sys.stderr)
+                    print("Warning:", end=' ', file=sys.stderr)
                     print("Marker %s could not be found in weights file."
                           % hmm, file=sys.stderr)
         for hmm in self.dup_hmms:
@@ -257,6 +256,5 @@ def suspicion_check(gene_match, bias, bestdomain):
     a dubious result."""
     if float(gene_match[2]) * bias <= float(gene_match[3]) or \
             float(gene_match[4]) - float(gene_match[1]) > bestdomain:
-        #cprint(gene_match, "magenta", file=sys.stderr)
         return True
     return False

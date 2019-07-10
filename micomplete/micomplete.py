@@ -24,35 +24,24 @@ from __future__ import division, print_function
 import argparse
 import logging
 import logging.handlers
-import math
 import multiprocessing as mp
 import os
 import re
 import shutil
 import subprocess
 import sys
-import tempfile
-import threading
 from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 from distutils import spawn
-from itertools import chain
 
 import Bio
 import matplotlib.pyplot as plt
 import numpy as np
-from Bio import SeqIO
-from Bio.SeqUtils import GC
-from termcolor import cprint
 
 try:
     from statistics import median
 except ImportError:
     from numpy import median
-try:
-    import queue
-except ImportError:
-    import Queue as queue
 try:
     from micomplete import __version__
 except ImportError:
@@ -162,7 +151,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
                            "%s will not be used to calculate linkage"
                            % (perc_hmm, name))
             except AttributeError:
-                cprint("Warning:", "red", end=' ', file=sys.stderr)
+                print("Warning:", end=' ', file=sys.stderr)
                 print("%i%% of markers were found in %s, cannot be used to"
                         "calculate linkage" % (perc_hmm, name), file=sys.stderr)
             return
@@ -375,7 +364,7 @@ def _bias_check(all_bias, logger=None):
                            "more 10 of score bias. Consider not using this marker"
                            % hmm)
             except AttributeError:
-                cprint("Warning:", "red", file=sys.stderr, end=' ')
+                print("Warning:", file=sys.stderr, end=' ')
                 print("More than %s%% of found markers had a higher than %s%% of" %
                       (0.5 * 100, 0.1 * 100), file=sys.stderr, end=' ')
                 print("score bias in marker %s. Consider not using this marker." %
