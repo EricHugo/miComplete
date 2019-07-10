@@ -56,7 +56,7 @@ except ImportError:
 try:
     from micomplete import __version__
 except ImportError:
-    __version__ = "1.0.0"
+    __version__ = "1.1.0"
 try:
     from micomplete import parseSeqStats
     from micomplete import linkageAnalysis
@@ -194,7 +194,8 @@ def _compile_results(seq_type, name, argv, proteome, seqstats, q=None,
     headers['CDs'] = seqstats[4]
     if not seq_type == 'faa':
         logger.log(logging.INFO, "Gathering nucleotide sequence stats")
-        fastats, headers['Length'], headers['Contigs'], headers['GC-content'], _ = seqstats
+        fastats, headers['Length'], all_lengths, headers['GC-content'], _ = seqstats
+        headers['Contigs'] = len(all_lengths)
     else:
         fastats, headers['Length'], headers['Contigs'], headers['GC-content'] = "-", "-", "-", "-"
     #output.extend((name, seq_length, GC))
