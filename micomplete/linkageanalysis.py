@@ -18,7 +18,7 @@ class linkageAnalysis():
         self.base_name = base_name
         self.seq_object = seq_object
         self.seq_type = seq_type
-        _, self.seq_length, all_lengths, _ = seqstats
+        _, self.seq_length, all_lengths, _, _ = seqstats
         self.proteome = proteome
         self.hmm_matches = hmm_matches
         self.hmm_locations = defaultdict(list)
