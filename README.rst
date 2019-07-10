@@ -12,7 +12,7 @@ With the increasing rate of the production of genomics data, particularly metage
 metagenome assembled genomes (MAGs) means often working with incomplete genomes, which can be acceptable provided the researcher is aware of this. Therefore there is a clear use for software
 able to rapidly and accurately provide the stats that describe the quality and completeness of the genomes or genomic bins of interest.
 
-miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, N- and L50, N- and L90). Further a set of marker genes
+miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, total number of CDs and contigs, as well as N- and L50, N- and L90). Further a set of marker genes
 in HMM format can be provided to also retrieve completeness and redundancy of those markers in each genome. Additionally, a set of weights for the marker genes can be provided to also retrieve the
 weighted versions of completeness and redundancy which can inform the user a bit more of the actual state completeness (see description). Alternatively, the user can calculate new weights for any given set
 of marker genes provided.
@@ -35,7 +35,8 @@ metric via a system of weighting the impact of different marker genes presence o
 Completeness
 ^^^^^^^^^^^^^^^
 In miComplete completeness is calculated based on the presence/absence a set of marker genes provided as a set of HMMs. The presence or absence of the marker genes is determined by HMMER3 (see dependencies)
-if the hit reported is below the cutoff e-value provided as well as passing the bias check. Duplicated marker genes are also gathered, and found duplications are reported as redundancy.
+if the hit reported is below the cutoff e-value provided as well as passing the bias check. Redundancy is reported as the fraction duplicated markers of all markers. In similar software such as CheckM
+this is reported as Contamination by percentage. E.g. 6% contamination in CheckM is equivalent to 1.06 redundancy in miComplete.
 
 Weights
 ^^^^^^^^^^^
@@ -78,7 +79,6 @@ Required
 - Biopython (>= 1.70) (``$ pip install biopython``)
 - Numpy (>= 1.13.1) (``$ pip install numpy``)
 - Matplotlib (>= 2.0.2) (``$ pip install matplotlib``)
-- Termcolor (>= 1.1.0) (``$ pip install termcolor``)
 
 Note: *matplotlib* as implemented requires a user interface. By default it uses *Tkinter*, which can be installed via your systems package manager. Also note that there may be a specific Tkinter for Python 2 and 3 respectively, ensure that you install the one for Python3. If you need more help, consult the `TkDocs <https://tkdocs.com/tutorial/install.html>`_.
 To instead alter backend used follow `these instructions <http://matplotlib.org/faq/usage_faq.html#what-is-a-backend>`_.
@@ -171,30 +171,34 @@ Optional arguments
    --debug             Debug logging.
    --version           Returns miComplete version and exits
    -o, --outfile OUTFILE    Name of outfile can be specified with this argument. By default prints to stdout.
-   
+
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^
 In a folder containing one or several FASTA files with '.fna' extensions, create a sequence tab file. Here it is best to avoid relative paths unless you know you will be running miComplete from the same relative directory. A correctly formatted input tab file can be created by hand or using a small utility script included with miComplete::
 
-   find $(realpath .) -maxdepth 1 -type f -name "*.fna" | miCompletelist.sh > test_set.tab
+   $ find $(realpath .) -maxdepth 1 -type f -name "*.fna" | miCompletelist.sh > test_set.tab
+
+miComplete_list.sh automatically detects valid extensions and adds the extension to the second column of the file, as miComplete expects. Note: .fasta and .fa are not considered valid extension as it is ambiguous whether they contain nucleotide- or amino acid sequence. Convert to .fna or .faa as appropriate.
 
 Sequence tab file, test_set.tab::
 
-   /seq/genomic_sources/legionella_longbeachae.fna  fna
-   /seq/genomic_sources/coxiella_burnetii.fna   fna
-   /seq/genomic_sources/coxiella-like_endosymbiont.fna  fna
+   $ cat test_set.tab
+    /seq/genomic_sources/legionella_longbeachae.fna  fna
+    /seq/genomic_sources/coxiella_burnetii.fna   fna
+    /seq/genomic_sources/coxiella-like_endosymbiont.fna  fna
 
-   
 Example 1 - Basic stats
 """"""""""""""""""""""""
 
 This example merely produces basic information about the given sequences::
 
    $ miComplete test_set.tab
-   Name	Length	GC-content	N50	L50	N90	L90
-   legionella_longbeachae	4149158	37.13	4077332	1	4077332	1
-   coxiella_burnetii	2032807	42.6	1995488	1	1995488	1
-   coxiella-like_endosymbiont	1733840	38.17	1733840	1	1733840	1
+    ## miComplete
+    ## v1.1.0
+    Name	Length	GC-content	Contigs	CDs	N50	L50	N90	L90	
+    legionella_longbeachae	4149158	37.13	2	3549	4077332	1	4077332	1	
+    coxiella_burnetii	2032807	42.6	2	2058	1995488	1	1995488	1	
+    coxiella-like_endosymbiont	1733840	38.17	1	1968	1733840	1	1733840	1
    
 miComplete prints result to stdout in tabular format, this can favourably be redirected towards a file with a pipe and examined with spreadsheet reader. ::
 
@@ -203,8 +207,10 @@ miComplete prints result to stdout in tabular format, this can favourably be red
 Alternatively, if we only have a single genome/genomic bin to investigate there is no need to create a sequence_tab file, as long as we provide the ``--format`` argument to inform miComplete of what file format to expect::
 
    $ miComplete legionella_longbeachae.fna --format fna
-   Name	Length	GC-content	N50	L50	N90	L90
-   legionella_longbeachae	4149158	37.13	4077332	1	4077332	1
+    ## miComplete
+    ## v1.1.0
+    Name	Length	GC-content	Contigs	CDs	N50	L50	N90	L90	
+    legionella_longbeachae	4149158	37.13	2	3549	4077332	1	4077332	1
 
 This way of investigating a single genome is compatible with all subsequent examples' options.
 
@@ -214,15 +220,18 @@ Example 2 - Completeness
 This example will produce the same basic statistics, but also completeness and redundancy::
 
    $ miComplete test_set.tab --hmms Bact105
-   Name	Length	GC-content	Present Markers	Completeness	Redundancy	N50	L50	N90	L90
-   legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	4077332	1	4077332	1
-   coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1995488	1	1995488	1
-   coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	1733840	1	1733840	1
-   
-That is great, but the run time is starting to increase significantly primarily due to needing to translate four genomes to proteomes.
-We can speed up the process by running all four parallel with ``--threads 4``::
+    ## miComplete
+    ## v1.1.0
+    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Contigs	CDs	N50	L50	N90	L90	
+    legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	2	3549	4077332	1	4077332	1	
+    coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	2	2058	1995488	1	1995488	1	
+    coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	1	1968	1733840	1	1733840	1
 
-   $ miComplete test_set.tab --hmms Bact105 --threads 4 > results.tab
+   
+That is great, but the run time is starting to increase significantly primarily due to needing to translate three genomes to proteomes.
+We can speed up the process by running all three parallel with ``--threads 3``::
+
+   $ miComplete test_set.tab --hmms Bact105 --threads 3 > results.tab
    
 Example 3 - Weighted completeness
 """"""""""""""""""""""""""""""""""
@@ -230,10 +239,14 @@ Example 3 - Weighted completeness
 This example will also produce the weighted completeness::
 
    $ miComplete test_set.tab --hmms Bact105 --weights Bact105
-   Name	Length	GC-content	Present Markers	Completeness	Redundancy	Weighted completeness	Weighted redundancy	N50	L50	N90	L90
-   legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	1.0	1.0151	4077332	1	4077332	1
-   coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1.0	1.0	1995488	1	1995488	1
-   coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	0.9476	1.0855	1733840	1	1733840	1
+    ## miComplete
+    ## v1.1.0
+    ## Weights:	/home/hugoson/.local/lib/python3.7/site-packages/micomplete/share/Bact105.weights
+    ## Weights Standard deviation:	0.13917826966028532
+    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Weighted completeness	Weighted redundancy	Contigs	CDs	N50	L50	N90	L90	
+    legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	1.0	1.0151	2	3549	4077332	1	4077332	1	
+    coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1.0	1.0	2	2058	1995488	1	1995488	1	
+    coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	0.9476	1.0855	1	1968	1733840	1	1733840	1
 
 Example 4 - Creating weights
 """"""""""""""""""""""""""""
