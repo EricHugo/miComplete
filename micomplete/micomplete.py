@@ -66,7 +66,7 @@ HEADERS["Redundancy"] = None
 HEADERS["Weighted completeness"] = None
 HEADERS["Weighted redundancy"] = None
 HEADERS["Contigs"] = None
-HEADERS["CDs"] = None
+HEADERS["CDS"] = None
 HEADERS["N50"] = None
 HEADERS["L50"] = None
 HEADERS["N90"] = None
@@ -158,7 +158,7 @@ def _worker(seqObject, seq_type, argv, q=None, name=None):
         logger.log(logging.INFO, "Starting linkage calculations of markers in"
                    "sequence")
         linkage = linkageAnalysis(seqObject, name, seq_type, proteome, seqstats,
-                                  hmm_matches, cutoff=argv.no_linkage_cutoff,
+                                  hmm_matches, cutoff=argv.linkage_cutoff,
                                   logger=logger)
         if not linkage.is_valid:
             return
@@ -623,8 +623,8 @@ def main():
                         action='store_true', help="""Specifies that the provided
                         sequences should be used to calculate the weights of the
                         provided HMMs""")
-    parser.add_argument("--no-linkage-cutoff", action='store_false', default=True,
-                        help="""Disable cutoff fraction of the entire fasta which
+    parser.add_argument("--linkage-cutoff", type=float, default=0.8,
+                        help="""Cutoff fraction of the entire fasta which
                         needs to be contained in a single contig in order to be 
                         included in linkage calculations. Disabling this is 
                         likely to result in some erroneous calculations.""")

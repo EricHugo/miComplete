@@ -14,7 +14,7 @@ from itertools import chain
 
 class linkageAnalysis():
     def __init__(self, seq_object, base_name, seq_type, proteome, seqstats,
-                 hmm_matches, cutoff=True, logger=None):
+                 hmm_matches, cutoff=0.8, logger=None):
         self.base_name = base_name
         self.seq_object = seq_object
         self.seq_type = seq_type
@@ -30,7 +30,7 @@ class linkageAnalysis():
         if len(all_lengths) > 1 and cutoff:
             chromosome = 0
             for length in all_lengths:
-                if (length / sum(all_lengths)) > 0.9:
+                if (length / sum(all_lengths)) > cutoff:
                     chromosome = length
             if not chromosome:
                 try:

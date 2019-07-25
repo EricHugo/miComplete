@@ -12,7 +12,7 @@ With the increasing rate of the production of genomics data, particularly metage
 metagenome assembled genomes (MAGs) means often working with incomplete genomes, which can be acceptable provided the researcher is aware of this. Therefore there is a clear use for software
 able to rapidly and accurately provide the stats that describe the quality and completeness of the genomes or genomic bins of interest.
 
-miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, total number of CDs and contigs, as well as N- and L50, N- and L90). Further a set of marker genes
+miComplete allows a user to provide a list of genomes or genomic bins to retrieve some basic statistics regarding the given genomes (size, GC-content, total number of CDS and contigs, as well as N- and L50, N- and L90). Further a set of marker genes
 in HMM format can be provided to also retrieve completeness and redundancy of those markers in each genome. Additionally, a set of weights for the marker genes can be provided to also retrieve the
 weighted versions of completeness and redundancy which can inform the user a bit more of the actual state completeness (see description). Alternatively, the user can calculate new weights for any given set
 of marker genes provided.
@@ -160,7 +160,7 @@ Optional arguments
    --weights WEIGHTS   Specify a set of weights for the HMMs specified. The default sets, "Bact105" and "Arch131", can be called via their respective names.
    --linkage           Specifies that the provided sequences should be used to calculate the weights of the provided HMMs
    --lenient           By default miComplete drops hits with too high bias or too low best domain score. This argument disables that behaviour, permitting any hit that meets the evalue requirements.
-   --no-linkage-cutoff  Disable cutoff fraction of the entire fasta which needs to be contained in a single contig in order to be included in linkage calculations. Disable this is likely to result in some erroneous calculations.
+   --linkage-cutoff    Cutoff fraction of the entire fasta which needs to be contained in a single contig in order to be included in linkage calculations. Disabling this is likely to result in some erroneous calculations.
    --evalue EVALUE     Specify e-value cutoff to be used for completeness check. Default = 4e-10
    --bias BIAS         Specify the bias cutoff as a fraction of score defined by hammer. Default = 0.3
    --domain-cutoff     Specify the largest allowed difference between best domain evalue and protein evalue. Default = 1e-5
@@ -195,7 +195,7 @@ This example merely produces basic information about the given sequences::
    $ miComplete test_set.tab
     ## miComplete
     ## v1.1.0
-    Name	Length	GC-content	Contigs	CDs	N50	L50	N90	L90	
+    Name	Length	GC-content	Contigs	CDS	N50	L50	N90	L90	
     legionella_longbeachae	4149158	37.13	2	3549	4077332	1	4077332	1	
     coxiella_burnetii	2032807	42.6	2	2058	1995488	1	1995488	1	
     coxiella-like_endosymbiont	1733840	38.17	1	1968	1733840	1	1733840	1
@@ -209,7 +209,7 @@ Alternatively, if we only have a single genome/genomic bin to investigate there 
    $ miComplete legionella_longbeachae.fna --format fna
     ## miComplete
     ## v1.1.0
-    Name	Length	GC-content	Contigs	CDs	N50	L50	N90	L90	
+    Name	Length	GC-content	Contigs	CDS	N50	L50	N90	L90	
     legionella_longbeachae	4149158	37.13	2	3549	4077332	1	4077332	1
 
 This way of investigating a single genome is compatible with all subsequent examples' options.
@@ -222,7 +222,7 @@ This example will produce the same basic statistics, but also completeness and r
    $ miComplete test_set.tab --hmms Bact105
     ## miComplete
     ## v1.1.0
-    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Contigs	CDs	N50	L50	N90	L90	
+    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Contigs	CDS	N50	L50	N90	L90	
     legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	2	3549	4077332	1	4077332	1	
     coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	2	2058	1995488	1	1995488	1	
     coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	1	1968	1733840	1	1733840	1
@@ -243,7 +243,7 @@ This example will also produce the weighted completeness::
     ## v1.1.0
     ## Weights:	/home/hugoson/.local/lib/python3.7/site-packages/micomplete/share/Bact105.weights
     ## Weights Standard deviation:	0.13917826966028532
-    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Weighted completeness	Weighted redundancy	Contigs	CDs	N50	L50	N90	L90	
+    Name	Length	GC-content	Present Markers	Completeness	Redundancy	Weighted completeness	Weighted redundancy	Contigs	CDS	N50	L50	N90	L90	
     legionella_longbeachae	4149158	37.13	105	1.0000	1.0095	1.0	1.0151	2	3549	4077332	1	4077332	1	
     coxiella_burnetii	2032807	42.6	105	1.0000	1.0000	1.0	1.0	2	2058	1995488	1	1995488	1	
     coxiella-like_endosymbiont	1733840	38.17	102	0.9714	1.0686	0.9476	1.0855	1	1968	1733840	1	1733840	1
