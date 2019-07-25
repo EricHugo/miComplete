@@ -35,6 +35,7 @@ from contextlib import contextmanager
 from distutils import spawn
 
 import Bio
+from Bio import SeqIO
 import matplotlib.pyplot as plt
 import numpy as np
 
