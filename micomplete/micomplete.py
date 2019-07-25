@@ -45,7 +45,7 @@ except ImportError:
 try:
     from micomplete import __version__
 except ImportError:
-    __version__ = "1.1.0"
+    __version__ = "1.1.1"
 try:
     from micomplete import parseSeqStats
     from micomplete import linkageAnalysis
