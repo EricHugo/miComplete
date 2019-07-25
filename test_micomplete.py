@@ -76,7 +76,7 @@ def test_linkage():
                                 '14': [['PT_14']],
                                 '15': [['PT_15']],
                                 '16': [['PT_16']]})
-    seqstats = ["", 10000, [1], ""]
+    seqstats = ["", 10000, [1], "", ""]
     l = linkageAnalysis(linkage_in, "test", "na", linkage_in, seqstats, linkage_hmms)
     assert l.get_locations() == locations
     assert l.find_neighbour_distance() == neighbour_dist
