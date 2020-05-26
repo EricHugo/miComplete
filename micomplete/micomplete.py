@@ -33,6 +33,7 @@ import sys
 from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 from distutils import spawn
+from tqdm import tqdm
 
 import Bio
 from Bio import SeqIO
@@ -709,7 +710,7 @@ def main():
                                'file, remember to provide the --format argument.')
 
     # get() all processes to catch errors
-    for job in jobs:
+    for job in tqdm(jobs):
         try:
             job.get()
         except Exception as e:
