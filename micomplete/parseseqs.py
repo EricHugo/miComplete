@@ -9,9 +9,10 @@ from __future__ import division, print_function
 import logging
 import re
 
+from packaging import version 
+import Bio
 from Bio import SeqIO
-from Bio.SeqUtils import GC
-
+from Bio import SeqUtils
 
 class parseSeqStats():
     def __init__(self, seq, base_name, seq_type, logger=None):
@@ -76,7 +77,10 @@ class parseSeqStats():
             except AttributeError:
                 pass
             # implement memory-efficient method here
-            gc_content = round(GC(''.join(str(total_fasta))), 2)
+            if version.parse(Bio.__version__) <= version.parse("1.80"):
+                gc_content = round(SeqUtils.GC(''.join(str(total_fasta))), 2)
+            else:
+                gc_content = SeqUtils.gc_fraction(''.join(total_fasta) * 100)
         seq_length = sum(all_lengths)
         return seq_length, all_lengths, gc_content
 
